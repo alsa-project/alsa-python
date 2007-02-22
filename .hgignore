@@ -1,0 +1,8 @@
+syntax: glob
+
+build/*
+old/*
+*~
+.*~
+*.orig
+*.rej
