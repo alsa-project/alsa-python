@@ -412,6 +412,235 @@ static PyTypeObject pyalsahcontrolelement_type = {
 };
 
 /*
+ * hcontrol info section
+ */
+
+#define PYHCTLINFO(v) (((v) == Py_None) ? NULL : \
+	((struct pyalsahcontrolinfo *)(v)))
+
+struct pyalsahcontrolinfo {
+	PyObject_HEAD
+	PyObject *pyelem;
+	snd_hctl_elem_t *elem;
+	snd_ctl_elem_info_t *info;
+};
+
+typedef int (*fcn2)(void *);
+
+static PyObject *
+pyalsahcontrolinfo_bool(struct pyalsahcontrolinfo *pyinfo, void *fcn)
+{
+	return get_bool(((fcn2)fcn)(pyinfo->elem));
+}
+
+static PyObject *
+pyalsahcontrolinfo_getowner(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	return PyInt_FromLong(snd_ctl_elem_info_get_owner(pyinfo->info));
+}
+
+static PyObject *
+pyalsahcontrolinfo_getitems(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	if (snd_ctl_elem_info_get_type(pyinfo->info) != SND_CTL_ELEM_TYPE_ENUMERATED) {
+		PyErr_SetString(PyExc_TypeError, "element is not enumerated");
+		return NULL;
+	}
+	return PyInt_FromLong(snd_ctl_elem_info_get_items(pyinfo->info));
+}
+
+typedef long (*fcn3_0)(void *);
+
+static PyObject *
+pyalsahcontrolinfo_long(struct pyalsahcontrolinfo *pyinfo, void *fcn)
+{
+	return PyLong_FromLong(((fcn3_0)fcn)(pyinfo->info));
+}
+
+typedef long long (*fcn3)(void *);
+
+static PyObject *
+pyalsahcontrolinfo_longlong(struct pyalsahcontrolinfo *pyinfo, void *fcn)
+{
+	return PyLong_FromLongLong(((fcn3)fcn)(pyinfo->info));
+}
+
+typedef unsigned int (*fcn4)(void *);
+
+static PyObject *
+pyalsahcontrolinfo_uint(struct pyalsahcontrolinfo *pyinfo, void *fcn)
+{
+	return PyLong_FromLong(((fcn4)fcn)(pyinfo->info));
+}
+
+typedef const char * (*fcn5)(void *);
+
+static PyObject *
+pyalsahcontrolinfo_str(struct pyalsahcontrolinfo *pyinfo, void *fcn)
+{
+	return PyString_FromString(((fcn5)fcn)(pyinfo->info));
+}
+
+static PyObject *
+pyalsahcontrolinfo_dimensions(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	int dims = snd_ctl_elem_info_get_dimensions(pyinfo->info);
+	unsigned int i;
+	PyObject *t;
+	
+	if (dims <= 0)
+		Py_RETURN_NONE;
+	t = PyTuple_New(dims);
+	if (t == NULL)
+		return NULL;
+	for (i = 0; i < dims; i++) {
+		PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_info_get_dimension(pyinfo->info, i)));
+	}
+	return t;
+}
+
+static PyObject *
+pyalsahcontrolinfo_itemnames(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	int items;
+	int res;
+	unsigned int i;
+	PyObject *t;
+	
+	if (snd_ctl_elem_info_get_type(pyinfo->info) != SND_CTL_ELEM_TYPE_ENUMERATED) {
+		PyErr_SetString(PyExc_TypeError, "element is not enumerated");
+		return NULL;
+	}
+	items = snd_ctl_elem_info_get_items(pyinfo->info);
+	if (items <= 0)
+		Py_RETURN_NONE;
+	t = PyTuple_New(items);
+	if (t == NULL)
+		return NULL;
+	for (i = 0; i < items; i++) {
+		snd_ctl_elem_info_set_item(pyinfo->info, i);
+		res = snd_hctl_elem_info(pyinfo->elem, pyinfo->info);
+		if (res < 0) {
+			Py_INCREF(Py_None);
+			PyTuple_SET_ITEM(t, i, Py_None);
+		} else {
+			PyTuple_SET_ITEM(t, i, PyString_FromString(snd_ctl_elem_info_get_item_name(pyinfo->info)));
+		}
+	}
+	return t;
+}
+
+PyDoc_STRVAR(infoinit__doc__,
+"Info(elem)\n"
+"  -- Create a hcontrol element info object.\n");
+
+static int
+pyalsahcontrolinfo_init(struct pyalsahcontrolinfo *pyinfo, PyObject *args, PyObject *kwds)
+{
+	PyObject *elem;
+	int res;
+
+	pyinfo->pyelem = NULL;
+	pyinfo->elem = NULL;
+	pyinfo->info = NULL;
+
+	if (!PyArg_ParseTuple(args, "O", &elem))
+		return -1;
+
+	if (elem->ob_type != &pyalsahcontrolelement_type) {
+		PyErr_SetString(PyExc_TypeError, "bad type for element argument");
+		return -1;
+	}
+
+	if (snd_ctl_elem_info_malloc(&pyinfo->info)) {
+		PyErr_SetString(PyExc_TypeError, "malloc problem");
+		return -1;
+	}
+
+	pyinfo->pyelem = elem;
+	Py_INCREF(elem);
+	pyinfo->elem = PYHCTLELEMENT(elem)->elem;
+
+	res = snd_hctl_elem_info(pyinfo->elem, pyinfo->info);
+	if (res < 0) {
+		PyErr_Format(PyExc_IOError, "hcontrol element info problem: %s", snd_strerror(-res));
+		return -1;
+	}	
+
+	return 0;
+}
+
+static void
+pyalsahcontrolinfo_dealloc(struct pyalsahcontrolinfo *self)
+{
+	if (self->info)
+		snd_ctl_elem_info_free(self->info);
+	if (self->pyelem) {
+		Py_XDECREF(self->pyelem);
+	}
+
+	self->ob_type->tp_free(self);
+}
+
+static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
+
+	{"numid",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element numid",	snd_ctl_elem_info_get_numid},
+	{"interface",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element interface",	snd_ctl_elem_info_get_interface},
+	{"device",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element device",	snd_ctl_elem_info_get_device},
+	{"subdevice",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element subdevice",	snd_ctl_elem_info_get_subdevice},
+	{"name",	(getter)pyalsahcontrolinfo_str,		NULL,	"hcontrol element name",	snd_ctl_elem_info_get_name},
+	{"index",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element index",	snd_ctl_elem_info_get_index},
+
+	{"type",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element index",	snd_ctl_elem_info_get_type},
+
+	{"isReadable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is readable",	snd_ctl_elem_info_is_readable},
+	{"isWriteable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is writeable",snd_ctl_elem_info_is_writable},
+	{"isVolatile",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is volatile",snd_ctl_elem_info_is_volatile},
+	{"isInactive",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is inactive",snd_ctl_elem_info_is_inactive},
+	{"isLocked",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is locked",snd_ctl_elem_info_is_locked},
+	{"isTlvReadable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV readable",snd_ctl_elem_info_is_tlv_readable},
+	{"isTlvWriteable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV writeable",snd_ctl_elem_info_is_tlv_writable},
+	{"isTlvCommandable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV commandable",snd_ctl_elem_info_is_tlv_commandable},
+	{"isOwner",	(getter)pyalsahcontrolinfo_bool,	NULL,	"this process is owner of this hcontrol element",snd_ctl_elem_info_is_owner},
+	{"isUser",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is user element",snd_ctl_elem_info_is_user},
+
+	{"owner",	(getter)pyalsahcontrolinfo_getowner,	NULL,	"get owner pid for this hcontrol element",	NULL},
+	{"count",	(getter)pyalsahcontrolinfo_uint,	NULL,	"get count of values",			snd_ctl_elem_info_get_count},
+	{"min",		(getter)pyalsahcontrolinfo_long,	NULL,	"get minimum limit value",		snd_ctl_elem_info_get_min},
+	{"max",		(getter)pyalsahcontrolinfo_long,	NULL,	"get maximum limit value",		snd_ctl_elem_info_get_max},
+	{"step",	(getter)pyalsahcontrolinfo_long,	NULL,	"get step value",			snd_ctl_elem_info_get_step},
+	{"min64",	(getter)pyalsahcontrolinfo_longlong,	NULL,	"get 64-bit minimum limit value",	snd_ctl_elem_info_get_min64},
+	{"max64",	(getter)pyalsahcontrolinfo_longlong,	NULL,	"get 64-bit maximum limit value",	snd_ctl_elem_info_get_max64},
+	{"step64",	(getter)pyalsahcontrolinfo_longlong,	NULL,	"get 64-bit step value",		snd_ctl_elem_info_get_step64},
+	{"items",	(getter)pyalsahcontrolinfo_getitems,	NULL,	"get count of enumerated items",	NULL},
+
+	{"dimensions",	(getter)pyalsahcontrolinfo_dimensions,	NULL,	"get hcontrol element dimensions (in tuple)",	NULL},
+	{"itemNames",		(getter)pyalsahcontrolinfo_itemnames,	NULL,	"get enumerated item names (in tuple)",		NULL},
+	
+	{NULL}
+};
+
+static PyMethodDef pyalsahcontrolinfo_methods[] = {
+
+	{NULL}
+};
+
+static PyTypeObject pyalsahcontrolinfo_type = {
+	PyObject_HEAD_INIT(0)
+	tp_name:	"alsahcontrol.Info",
+	tp_basicsize:	sizeof(struct pyalsahcontrolinfo),
+	tp_dealloc:	(destructor)pyalsahcontrolinfo_dealloc,
+	tp_flags:	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	tp_doc:		infoinit__doc__,
+	tp_getset:	pyalsahcontrolinfo_getseters,
+	tp_init:	(initproc)pyalsahcontrolinfo_init,
+	tp_alloc:	PyType_GenericAlloc,
+	tp_new:		PyType_GenericNew,
+	tp_free:	PyObject_Del,
+	tp_methods:	pyalsahcontrolinfo_methods,
+};
+
+/*
  *
  */
 
@@ -428,6 +657,8 @@ initalsahcontrol(void)
 	if (PyType_Ready(&pyalsahcontrol_type) < 0)
 		return;
 	if (PyType_Ready(&pyalsahcontrolelement_type) < 0)
+		return;
+	if (PyType_Ready(&pyalsahcontrolinfo_type) < 0)
 		return;
 
 	module = Py_InitModule3("alsahcontrol", pyalsahcontrolparse_methods, "libasound hcontrol wrapper");
@@ -447,6 +678,9 @@ initalsahcontrol(void)
 
 	Py_INCREF(&pyalsahcontrolelement_type);
 	PyModule_AddObject(module, "Element", (PyObject *)&pyalsahcontrolelement_type);
+
+	Py_INCREF(&pyalsahcontrolinfo_type);
+	PyModule_AddObject(module, "Info", (PyObject *)&pyalsahcontrolinfo_type);
 
 	d = PyModule_GetDict(module);
 
@@ -496,7 +730,7 @@ initalsahcontrol(void)
 	add_space2("None", NONE);
 	add_space2("Boolean", BOOLEAN);
 	add_space2("Integer", INTEGER);
-	add_space2("Enumeraed", ENUMERATED);
+	add_space2("Enumerated", ENUMERATED);
 	add_space2("Bytes", BYTES);
 	add_space2("IEC958", IEC958);
 	add_space2("Integer64", INTEGER64);
