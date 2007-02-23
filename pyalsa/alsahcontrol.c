@@ -70,6 +70,22 @@ static inline PyObject *get_bool(int val)
 	}
 }
 
+static PyObject *id_to_python(snd_ctl_elem_id_t *id)
+{
+	PyObject *v;
+
+	v = PyTuple_New(6);
+	if (v == NULL)
+		return NULL;
+	PyTuple_SET_ITEM(v, 0, PyInt_FromLong(snd_ctl_elem_id_get_numid(id)));
+	PyTuple_SET_ITEM(v, 1, PyInt_FromLong(snd_ctl_elem_id_get_interface(id)));
+	PyTuple_SET_ITEM(v, 2, PyInt_FromLong(snd_ctl_elem_id_get_device(id)));
+	PyTuple_SET_ITEM(v, 3, PyInt_FromLong(snd_ctl_elem_id_get_subdevice(id)));
+	PyTuple_SET_ITEM(v, 4, PyString_FromString(snd_ctl_elem_id_get_name(id)));
+	PyTuple_SET_ITEM(v, 5, PyInt_FromLong(snd_ctl_elem_id_get_index(id)));
+	return v;
+}
+
 static PyObject *
 pyalsahcontrol_getcount(struct pyalsahcontrol *self, void *priv)
 {
@@ -150,13 +166,7 @@ pyalsahcontrol_list(struct pyalsahcontrol *self, PyObject *args)
 		v = NULL;
 		if (elem) {
 			snd_hctl_elem_get_id(elem, id);
-			v = PyTuple_New(6);
-			PyTuple_SET_ITEM(v, 0, PyInt_FromLong(snd_ctl_elem_id_get_numid(id)));
-			PyTuple_SET_ITEM(v, 1, PyInt_FromLong(snd_ctl_elem_id_get_interface(id)));
-			PyTuple_SET_ITEM(v, 2, PyInt_FromLong(snd_ctl_elem_id_get_device(id)));
-			PyTuple_SET_ITEM(v, 3, PyInt_FromLong(snd_ctl_elem_id_get_subdevice(id)));
-			PyTuple_SET_ITEM(v, 4, PyString_FromString(snd_ctl_elem_id_get_name(id)));
-			PyTuple_SET_ITEM(v, 5, PyInt_FromLong(snd_ctl_elem_id_get_index(id)));
+			v = id_to_python(id);
 		}
 		if (v == NULL || elem == NULL) {
 			v = Py_None;
@@ -454,6 +464,10 @@ typedef long (*fcn3_0)(void *);
 static PyObject *
 pyalsahcontrolinfo_long(struct pyalsahcontrolinfo *pyinfo, void *fcn)
 {
+	if (snd_ctl_elem_info_get_type(pyinfo->info) != SND_CTL_ELEM_TYPE_INTEGER) {
+		PyErr_SetString(PyExc_TypeError, "element is not integer");
+		return NULL;
+	}
 	return PyLong_FromLong(((fcn3_0)fcn)(pyinfo->info));
 }
 
@@ -462,6 +476,10 @@ typedef long long (*fcn3)(void *);
 static PyObject *
 pyalsahcontrolinfo_longlong(struct pyalsahcontrolinfo *pyinfo, void *fcn)
 {
+	if (snd_ctl_elem_info_get_type(pyinfo->info) != SND_CTL_ELEM_TYPE_INTEGER64) {
+		PyErr_SetString(PyExc_TypeError, "element is not integer64");
+		return NULL;
+	}
 	return PyLong_FromLongLong(((fcn3)fcn)(pyinfo->info));
 }
 
@@ -479,6 +497,16 @@ static PyObject *
 pyalsahcontrolinfo_str(struct pyalsahcontrolinfo *pyinfo, void *fcn)
 {
 	return PyString_FromString(((fcn5)fcn)(pyinfo->info));
+}
+
+static PyObject *
+pyalsahcontrolinfo_id(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	snd_ctl_elem_id_t *id;
+	
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_info_get_id(pyinfo->info, id);
+	return id_to_python(id);
 }
 
 static PyObject *
@@ -584,6 +612,8 @@ pyalsahcontrolinfo_dealloc(struct pyalsahcontrolinfo *self)
 
 static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 
+	{"id",		(getter)pyalsahcontrolinfo_id,		NULL,	"hcontrol element full id",	snd_ctl_elem_info_get_id},
+
 	{"numid",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element numid",	snd_ctl_elem_info_get_numid},
 	{"interface",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element interface",	snd_ctl_elem_info_get_interface},
 	{"device",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element device",	snd_ctl_elem_info_get_device},
@@ -615,7 +645,7 @@ static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 	{"items",	(getter)pyalsahcontrolinfo_getitems,	NULL,	"get count of enumerated items",	NULL},
 
 	{"dimensions",	(getter)pyalsahcontrolinfo_dimensions,	NULL,	"get hcontrol element dimensions (in tuple)",	NULL},
-	{"itemNames",		(getter)pyalsahcontrolinfo_itemnames,	NULL,	"get enumerated item names (in tuple)",		NULL},
+	{"itemNames",	(getter)pyalsahcontrolinfo_itemnames,	NULL,	"get enumerated item names (in tuple)",		NULL},
 	
 	{NULL}
 };
