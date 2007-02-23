@@ -435,6 +435,13 @@ struct pyalsahcontrolinfo {
 	snd_ctl_elem_info_t *info;
 };
 
+static PyObject *
+pyalsahcontrolinfo_element(struct pyalsahcontrolinfo *pyinfo, void *priv)
+{
+	Py_INCREF(pyinfo->pyelem);
+	return pyinfo->pyelem;
+}
+
 typedef int (*fcn2)(void *);
 
 static PyObject *
@@ -612,6 +619,8 @@ pyalsahcontrolinfo_dealloc(struct pyalsahcontrolinfo *self)
 
 static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 
+	{"element",	(getter)pyalsahcontrolinfo_element,	NULL,	"hcontrol element for this info",	NULL},
+
 	{"id",		(getter)pyalsahcontrolinfo_id,		NULL,	"hcontrol element full id",	snd_ctl_elem_info_get_id},
 
 	{"numid",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element numid",	snd_ctl_elem_info_get_numid},
@@ -624,12 +633,12 @@ static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 	{"type",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element index",	snd_ctl_elem_info_get_type},
 
 	{"isReadable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is readable",	snd_ctl_elem_info_is_readable},
-	{"isWriteable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is writeable",snd_ctl_elem_info_is_writable},
+	{"isWritable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is writable",snd_ctl_elem_info_is_writable},
 	{"isVolatile",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is volatile",snd_ctl_elem_info_is_volatile},
 	{"isInactive",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is inactive",snd_ctl_elem_info_is_inactive},
 	{"isLocked",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is locked",snd_ctl_elem_info_is_locked},
 	{"isTlvReadable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV readable",snd_ctl_elem_info_is_tlv_readable},
-	{"isTlvWriteable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV writeable",snd_ctl_elem_info_is_tlv_writable},
+	{"isTlvWritable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV writable",snd_ctl_elem_info_is_tlv_writable},
 	{"isTlvCommandable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV commandable",snd_ctl_elem_info_is_tlv_commandable},
 	{"isOwner",	(getter)pyalsahcontrolinfo_bool,	NULL,	"this process is owner of this hcontrol element",snd_ctl_elem_info_is_owner},
 	{"isUser",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is user element",snd_ctl_elem_info_is_user},
@@ -671,6 +680,348 @@ static PyTypeObject pyalsahcontrolinfo_type = {
 };
 
 /*
+ * hcontrol value section
+ */
+
+#define PYHCTLVALUE(v) (((v) == Py_None) ? NULL : \
+	((struct pyalsahcontrolvalue *)(v)))
+
+struct pyalsahcontrolvalue {
+	PyObject_HEAD
+	PyObject *pyelem;
+	snd_hctl_elem_t *elem;
+	snd_ctl_elem_value_t *value;
+};
+
+static PyObject *
+pyalsahcontrolvalue_element(struct pyalsahcontrolvalue *pyvalue, void *priv)
+{
+	Py_INCREF(pyvalue->pyelem);
+	return pyvalue->pyelem;
+}
+
+typedef unsigned int (*fcn10)(void *);
+
+static PyObject *
+pyalsahcontrolvalue_uint(struct pyalsahcontrolvalue *pyvalue, void *fcn)
+{
+	return PyLong_FromLong(((fcn10)fcn)(pyvalue->value));
+}
+
+typedef const char * (*fcn11)(void *);
+
+static PyObject *
+pyalsahcontrolvalue_str(struct pyalsahcontrolvalue *pyvalue, void *fcn)
+{
+	return PyString_FromString(((fcn5)fcn)(pyvalue->value));
+}
+
+static PyObject *
+pyalsahcontrolvalue_id(struct pyalsahcontrolvalue *pyvalue, void *priv)
+{
+	snd_ctl_elem_id_t *id;
+	
+	snd_ctl_elem_id_alloca(&id);
+	snd_ctl_elem_value_get_id(pyvalue->value, id);
+	return id_to_python(id);
+}
+
+PyDoc_STRVAR(gettuple__doc__,
+"getTuple(type, count) -- Get hcontrol element values in tuple.");
+
+static PyObject *
+pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	int type;
+	long i, count;
+	snd_aes_iec958_t *iec958;
+	PyObject *t;
+
+	if (!PyArg_ParseTuple(args, "il", &type, &count))
+		return NULL;
+
+	if (count <= 0)
+		Py_RETURN_NONE;
+
+	if (type == SND_CTL_ELEM_TYPE_IEC958) {
+		if (count != 1)
+			Py_RETURN_NONE;
+		count = 3;
+	}
+	t = PyTuple_New(count);
+	if (t == NULL)
+		return NULL;
+
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_BOOLEAN:
+		for (i = 0; i < count; i++)
+			PyTuple_SET_ITEM(t, i, get_bool(snd_ctl_elem_value_get_boolean(self->value, i)));
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		for (i = 0; i < count; i++)
+			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_integer(self->value, i)));
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		for (i = 0; i < count; i++)
+			PyTuple_SET_ITEM(t, i, PyLong_FromLongLong(snd_ctl_elem_value_get_integer64(self->value, i)));
+		break;
+	case SND_CTL_ELEM_TYPE_ENUMERATED:
+		for (i = 0; i < count; i++)
+			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_enumerated(self->value, i)));
+		break;
+	case SND_CTL_ELEM_TYPE_BYTES:
+		for (i = 0; i < count; i++)
+			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_byte(self->value, i)));
+		break;
+	case SND_CTL_ELEM_TYPE_IEC958:
+		iec958 = malloc(sizeof(*iec958));
+		if (iec958 == NULL) {
+			Py_DECREF(t);
+			Py_RETURN_NONE;
+		}
+		snd_ctl_elem_value_get_iec958(self->value, iec958);
+		PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
+		PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
+		PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+		free(iec958);
+		break;
+	default:
+		Py_DECREF(t); t = NULL;
+		PyErr_Format(PyExc_TypeError, "Unknown hcontrol element type %i", type);
+		break;
+	}
+
+	return t;
+}
+
+PyDoc_STRVAR(settuple__doc__,
+"setTuple(type, val) -- Get hcontrol element values from tuple.");
+
+static PyObject *
+pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	int type, len;
+	long i, count;
+	snd_aes_iec958_t *iec958;
+	PyObject *t, *v;
+	char *str;
+
+	if (!PyArg_ParseTuple(args, "iO", &type, &t))
+		return NULL;
+
+	if (!PyTuple_Check(t)) {
+		PyErr_SetString(PyExc_TypeError, "Tuple expected as val argument!");
+		return NULL;
+	}
+
+	count = PyTuple_Size(t);
+
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_BOOLEAN:
+		for (i = 0; i < count; i++) {
+			v = PyTuple_GetItem(t, i);
+			if (v == Py_None)
+				continue;
+			snd_ctl_elem_value_set_boolean(self->value, i, PyInt_AsLong(v));
+		}
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		for (i = 0; i < count; i++) {
+			v = PyTuple_GetItem(t, i);
+			if (v == Py_None)
+				continue;
+			snd_ctl_elem_value_set_integer(self->value, i, PyInt_AsLong(v));
+		}
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		for (i = 0; i < count; i++) {
+			v = PyTuple_GetItem(t, i);
+			if (v == Py_None)
+				continue;
+			snd_ctl_elem_value_set_integer64(self->value, i, PyLong_AsLongLong(v));
+		}
+		break;
+	case SND_CTL_ELEM_TYPE_ENUMERATED:
+		for (i = 0; i < count; i++) {
+			v = PyTuple_GetItem(t, i);
+			if (v == Py_None)
+				continue;
+			snd_ctl_elem_value_set_enumerated(self->value, i, PyInt_AsLong(v));
+		}
+		break;
+	case SND_CTL_ELEM_TYPE_BYTES:
+		for (i = 0; i < count; i++) {
+			v = PyTuple_GetItem(t, i);
+			if (v == Py_None)
+				continue;
+			snd_ctl_elem_value_set_byte(self->value, i, PyInt_AsLong(v));
+		}
+		break;
+	case SND_CTL_ELEM_TYPE_IEC958:
+		if (PyTuple_Size(t) != 3) {
+			PyErr_SetString(PyExc_TypeError, "Tuple with len == 3 expected for IEC958 type!");
+			return NULL;
+		}
+		iec958 = calloc(1, sizeof(*iec958));
+		if (iec958 == NULL) {
+			Py_DECREF(t);
+			Py_RETURN_NONE;
+		}
+		len = 0;
+		if (PyString_AsStringAndSize(PyTuple_GET_ITEM(t, 0), &str, &len))
+			goto err1;
+		if (len > sizeof(iec958->status))
+			len = sizeof(iec958->status);
+		memcpy(iec958->status, str, len);
+		len = 0;
+			goto err1;
+		if (len > sizeof(iec958->subcode))
+			len = sizeof(iec958->subcode);
+		memcpy(iec958->subcode, str, len);
+		len = 0;
+		if (PyString_AsStringAndSize(PyTuple_GET_ITEM(t, 2), &str, &len))
+			goto err1;
+		if (len > sizeof(iec958->dig_subframe))
+			len = sizeof(iec958->dig_subframe);
+		memcpy(iec958->dig_subframe, str, len);
+		free(iec958);
+		break;
+	      err1:
+		PyErr_SetString(PyExc_TypeError, "Invalid tuple IEC958 type!");
+	       	free(iec958);
+	       	break;
+	default:
+		PyErr_Format(PyExc_TypeError, "Unknown hcontrol element type %i", type);
+		break;
+	}
+
+	return t;
+}
+
+PyDoc_STRVAR(read__doc__,
+"read() -- Read value state.\n");
+
+static PyObject *
+pyalsahcontrolvalue_read(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	int res;
+
+	res = snd_hctl_elem_read(self->elem, self->value);
+	if (res < 0)
+		return PyErr_Format(PyExc_IOError, "hcontrol element read error: %s", snd_strerror(-res));
+	Py_RETURN_NONE;
+}
+
+PyDoc_STRVAR(write__doc__,
+"write() -- Write new value state.\n");
+
+static PyObject *
+pyalsahcontrolvalue_write(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	int res;
+
+	res = snd_hctl_elem_write(self->elem, self->value);
+	if (res < 0)
+		return PyErr_Format(PyExc_IOError, "hcontrol element write error: %s", snd_strerror(-res));
+	Py_RETURN_NONE;
+}
+
+PyDoc_STRVAR(valueinit__doc__,
+"Value(elem)\n"
+"  -- Create a hcontrol element value object.\n"
+"Note: Value state is read from device!\n");
+
+static int
+pyalsahcontrolvalue_init(struct pyalsahcontrolvalue *pyvalue, PyObject *args, PyObject *kwds)
+{
+	PyObject *elem;
+	int res;
+
+	pyvalue->pyelem = NULL;
+	pyvalue->elem = NULL;
+	pyvalue->value = NULL;
+
+	if (!PyArg_ParseTuple(args, "O", &elem))
+		return -1;
+
+	if (elem->ob_type != &pyalsahcontrolelement_type) {
+		PyErr_SetString(PyExc_TypeError, "bad type for element argument");
+		return -1;
+	}
+
+	if (snd_ctl_elem_value_malloc(&pyvalue->value)) {
+		PyErr_SetString(PyExc_TypeError, "malloc problem");
+		return -1;
+	}
+
+	pyvalue->pyelem = elem;
+	Py_INCREF(elem);
+	pyvalue->elem = PYHCTLELEMENT(elem)->elem;
+
+	res = snd_hctl_elem_read(pyvalue->elem, pyvalue->value);
+	if (res < 0) {
+		PyErr_Format(PyExc_IOError, "hcontrol element value read problem: %s", snd_strerror(-res));
+		return -1;
+	}	
+
+	return 0;
+}
+
+static void
+pyalsahcontrolvalue_dealloc(struct pyalsahcontrolvalue *self)
+{
+	if (self->value)
+		snd_ctl_elem_value_free(self->value);
+	if (self->pyelem) {
+		Py_XDECREF(self->pyelem);
+	}
+
+	self->ob_type->tp_free(self);
+}
+
+static PyGetSetDef pyalsahcontrolvalue_getseters[] = {
+
+	{"element",	(getter)pyalsahcontrolvalue_element,	NULL,	"hcontrol element for this value",	NULL},
+
+	{"id",		(getter)pyalsahcontrolvalue_id,		NULL,	"hcontrol element full id",	snd_ctl_elem_value_get_id},
+
+	{"numid",	(getter)pyalsahcontrolvalue_uint,	NULL,	"hcontrol element numid",	snd_ctl_elem_value_get_numid},
+	{"interface",	(getter)pyalsahcontrolvalue_uint,	NULL,	"hcontrol element interface",	snd_ctl_elem_value_get_interface},
+	{"device",	(getter)pyalsahcontrolvalue_uint,	NULL,	"hcontrol element device",	snd_ctl_elem_value_get_device},
+	{"subdevice",	(getter)pyalsahcontrolvalue_uint,	NULL,	"hcontrol element subdevice",	snd_ctl_elem_value_get_subdevice},
+	{"name",	(getter)pyalsahcontrolvalue_str,	NULL,	"hcontrol element name",	snd_ctl_elem_value_get_name},
+	{"index",	(getter)pyalsahcontrolvalue_uint,	NULL,	"hcontrol element index",	snd_ctl_elem_value_get_index},
+	
+	{NULL}
+};
+
+static PyMethodDef pyalsahcontrolvalue_methods[] = {
+
+	{"getTuple",	(PyCFunction)pyalsahcontrolvalue_gettuple,	METH_VARARGS,	gettuple__doc__},
+	{"setTuple",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	settuple__doc__},
+
+	{"read",	(PyCFunction)pyalsahcontrolvalue_read,		METH_NOARGS,	read__doc__},
+	{"write",	(PyCFunction)pyalsahcontrolvalue_write,		METH_NOARGS,	write__doc__},
+
+	{NULL}
+};
+
+static PyTypeObject pyalsahcontrolvalue_type = {
+	PyObject_HEAD_INIT(0)
+	tp_name:	"alsahcontrol.Value",
+	tp_basicsize:	sizeof(struct pyalsahcontrolvalue),
+	tp_dealloc:	(destructor)pyalsahcontrolvalue_dealloc,
+	tp_flags:	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+	tp_doc:		valueinit__doc__,
+	tp_getset:	pyalsahcontrolvalue_getseters,
+	tp_init:	(initproc)pyalsahcontrolvalue_init,
+	tp_alloc:	PyType_GenericAlloc,
+	tp_new:		PyType_GenericNew,
+	tp_free:	PyObject_Del,
+	tp_methods:	pyalsahcontrolvalue_methods,
+};
+
+/*
  *
  */
 
@@ -689,6 +1040,8 @@ initalsahcontrol(void)
 	if (PyType_Ready(&pyalsahcontrolelement_type) < 0)
 		return;
 	if (PyType_Ready(&pyalsahcontrolinfo_type) < 0)
+		return;
+	if (PyType_Ready(&pyalsahcontrolvalue_type) < 0)
 		return;
 
 	module = Py_InitModule3("alsahcontrol", pyalsahcontrolparse_methods, "libasound hcontrol wrapper");
@@ -711,6 +1064,9 @@ initalsahcontrol(void)
 
 	Py_INCREF(&pyalsahcontrolinfo_type);
 	PyModule_AddObject(module, "Info", (PyObject *)&pyalsahcontrolinfo_type);
+
+	Py_INCREF(&pyalsahcontrolvalue_type);
+	PyModule_AddObject(module, "Value", (PyObject *)&pyalsahcontrolvalue_type);
 
 	d = PyModule_GetDict(module);
 

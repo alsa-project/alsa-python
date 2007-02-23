@@ -22,6 +22,20 @@ def info(element):
 			extra = ' (%s)' % alsahcontrol.ElementTypeName[info.type]
 		print '  %s: %s%s' % (a, getattr(info, a), extra)
 
+def value(element):
+	info = alsahcontrol.Info(element)
+	value = alsahcontrol.Value(element)
+	for a in dir(value):
+		if a.startswith('__'):
+			continue
+		print '  %s: %s' % (a, getattr(value, a))
+	values = value.getTuple(info.type, info.count)
+	print '  Values: ', values
+	value.setTuple(info.type, values)
+	value.read()
+	if info.isWritable:
+		value.write()
+
 print 'InterfaceId:'
 print '  ', alsahcontrol.InterfaceId
 print 'InterfaceName:'
@@ -47,4 +61,6 @@ for l in list:
 	print '*****'
 	element1 = alsahcontrol.Element(hctl, l[1:])
 	info(element1)
+	print '-----'
+	value(element1)
 del hctl

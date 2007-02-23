@@ -17,13 +17,19 @@ def parse_event_mask(events):
 
 def event_callback(element, events):
 
+	info = alsahcontrol.Info(element)
+	value = alsahcontrol.Value(element)
 	print 'CALLBACK (DEF)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index)
+	print '  ', value.getTuple(info.type, info.count)
 
 
 class MyElementEvent:
 
 	def callback(self, element, events):
+		info = alsahcontrol.Info(element)
+		value = alsahcontrol.Value(element)
 		print 'CALLBACK (CLASS)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index)
+		print '  ', value.getTuple(info.type, info.count)
 
 hctl = alsahcontrol.HControl()
 list = hctl.list()
