@@ -31,6 +31,7 @@ class MyElementEvent:
 mixer = alsamixer.Mixer()
 mixer.attach()
 mixer.load()
+
 element1 = alsamixer.Element(mixer, "Front")
 element1.setCallback(event_callback)
 element2 = alsamixer.Element(mixer, "PCM")

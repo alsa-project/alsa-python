@@ -86,6 +86,50 @@ static PyObject *id_to_python(snd_ctl_elem_id_t *id)
 	return v;
 }
 
+static int parse_id(snd_ctl_elem_id_t *id, PyObject *o)
+{
+	unsigned int interface, device, subdevice, index;
+	char *name;
+
+	if (!PyTuple_Check(o) || PyTuple_Size(o) != 5) {
+		PyErr_SetString(PyExc_TypeError, "id argument tuple size error");
+		return -1;
+	}
+	if (!PyArg_ParseTuple(o, "iiisi", &interface, &device, &subdevice, &name, &index))
+		return -1;
+	snd_ctl_elem_id_set_interface(id, interface);
+	snd_ctl_elem_id_set_device(id, device);
+	snd_ctl_elem_id_set_subdevice(id, subdevice);
+	snd_ctl_elem_id_set_name(id, name);
+	snd_ctl_elem_id_set_index(id, index);
+	return 0;
+}
+
+typedef int (*fcn_simple)(void *, void *);
+
+static PyObject *simple_id_fcn(struct pyalsahcontrol *self, PyObject *args, void *fcn, const char *xname)
+{
+	snd_ctl_elem_id_t *id;
+	int res;
+
+	snd_ctl_elem_id_alloca(&id);
+	if (PyTuple_Check(args) && !PyTuple_Check(PyTuple_GetItem(args, 0))) {
+		if (parse_id(id, args) < 0)
+			return NULL;
+	} else {
+		if (!PyArg_ParseTuple(args, "O", &args))
+			return NULL;
+		if (parse_id(id, args) < 0)
+			return NULL;
+	}
+	res = ((fcn_simple)fcn)(snd_hctl_ctl(self->handle), id);
+	if (res < 0) {
+		PyErr_Format(PyExc_IOError, "element %s error: %s", xname, snd_strerror(-res));
+		return NULL;
+	}
+	Py_RETURN_NONE;
+}
+
 static PyObject *
 pyalsahcontrol_getcount(struct pyalsahcontrol *self, void *priv)
 {
@@ -178,6 +222,124 @@ pyalsahcontrol_list(struct pyalsahcontrol *self, PyObject *args)
 	return t;
 }
 
+PyDoc_STRVAR(elementnew__doc__,
+"elementNew(elementType['Integer'], id, count, min, max, step)\n"
+"elementNew(elementType['Integer64'], id, count, min64, max64, step64)\n"
+"elementNew(elementType['Boolean'], id, count)\n"
+"elementNew(elementType['IEC958'], id)\n"
+"  -- Create a new hcontrol element.\n"
+"  -- The id argument is tuple (interface, device, subdevice, name, index).\n");
+
+static PyObject *
+pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
+{
+	snd_ctl_elem_type_t type;
+	PyObject *o;
+	unsigned int count;
+	long min, max, step;
+	long long min64, max64, step64;
+	snd_ctl_elem_id_t *id;
+	snd_ctl_t *ctl;
+	int res;
+
+	snd_ctl_elem_id_alloca(&id);
+	if (!PyTuple_Check(args) || PyTuple_Size(args) < 2) {
+		PyErr_SetString(PyExc_TypeError, "wrong argument count");
+		return NULL;
+	}
+	o = PyTuple_GetItem(args, 0);
+	if (!PyInt_Check(o)) {
+		PyErr_SetString(PyExc_TypeError, "type argument is not integer");
+		return NULL;
+	}
+	type = PyInt_AsLong(o);
+	o = PyTuple_GetItem(args, 1);
+	if (!PyTuple_Check(o)) {
+		PyErr_SetString(PyExc_TypeError, "id argument is not tuple");
+		return NULL;
+	}
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		if (!PyArg_ParseTuple(args, "iOilll", &type, &o, &count, &min, &max, &step))
+			return NULL;
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		if (!PyArg_ParseTuple(args, "iO|iLLL", &type, &o, &count, &min64, &max64, &step64))
+			return NULL;
+		break;
+	case SND_CTL_ELEM_TYPE_BOOLEAN:
+		if (!PyArg_ParseTuple(args, "iOi", &type, &o, &count))
+			return NULL;
+		break;
+	case SND_CTL_ELEM_TYPE_IEC958:
+		if (!PyArg_ParseTuple(args, "iO", &type, &o))
+			return NULL;
+		break;
+	default:
+		PyErr_Format(PyExc_TypeError, "type %i is not supported yet", type);
+		return NULL;
+		
+	}
+	if (parse_id(id, o) < 0)
+		return NULL;
+	ctl = snd_hctl_ctl(self->handle);
+	switch (type) {
+	case SND_CTL_ELEM_TYPE_INTEGER:
+		res = snd_ctl_elem_add_integer(ctl, id, count, min, max, step);
+		break;
+	case SND_CTL_ELEM_TYPE_INTEGER64:
+		res = snd_ctl_elem_add_integer64(ctl, id, count, min64, max64, step64);
+		break;
+	case SND_CTL_ELEM_TYPE_BOOLEAN:
+		res = snd_ctl_elem_add_boolean(ctl, id, count);
+		break;
+	case SND_CTL_ELEM_TYPE_IEC958:
+		res = snd_ctl_elem_add_iec958(ctl, id);
+		break;
+	default:
+		res = -EIO;
+		break;
+	}
+	if (res < 0) {
+		PyErr_Format(PyExc_IOError, "new element of type %i create error: %s", type, snd_strerror(-res));
+		return NULL;
+	}
+	Py_RETURN_NONE;
+}
+
+PyDoc_STRVAR(elementremove__doc__,
+"elementRemove(id)\n"
+"elementRemove(interface, device, subdevice, name, index)\n"
+"  -- Remove element.\n");
+
+static PyObject *
+pyalsahcontrol_elementremove(struct pyalsahcontrol *self, PyObject *args)
+{
+	return simple_id_fcn(self, args, snd_ctl_elem_remove, "remove");
+}
+
+PyDoc_STRVAR(elementlock__doc__,
+"elementLock(id)\n"
+"elementLock(interface, device, subdevice, name, index)\n"
+" -- Lock element.\n");
+
+static PyObject *
+pyalsahcontrol_elementlock(struct pyalsahcontrol *self, PyObject *args)
+{
+	return simple_id_fcn(self, args, snd_ctl_elem_lock, "lock");
+}
+
+PyDoc_STRVAR(elementunlock__doc__,
+"elementUnlock(id)\n"
+"elementUnlock(interface, device, subdevice, name, index)\n"
+" -- Unlock element.\n");
+
+static PyObject *
+pyalsahcontrol_elementunlock(struct pyalsahcontrol *self, PyObject *args)
+{
+	return simple_id_fcn(self, args, snd_ctl_elem_unlock, "unlock");
+}
+
 PyDoc_STRVAR(alsahcontrolinit__doc__,
 "HControl([name='default'],[mode=0])\n"
 "  -- Open an ALSA HControl device.\n");
@@ -233,6 +395,10 @@ static PyGetSetDef pyalsahcontrol_getseters[] = {
 static PyMethodDef pyalsahcontrol_methods[] = {
 
 	{"list",	(PyCFunction)pyalsahcontrol_list,	METH_NOARGS,	list__doc__},
+	{"elementNew",	(PyCFunction)pyalsahcontrol_elementnew,	METH_VARARGS,	elementnew__doc__},
+	{"elementRemove",(PyCFunction)pyalsahcontrol_elementremove,	METH_VARARGS,	elementremove__doc__},
+	{"elementLock",(PyCFunction)pyalsahcontrol_elementlock,	METH_VARARGS,	elementlock__doc__},
+	{"elementUnlock",(PyCFunction)pyalsahcontrol_elementunlock,	METH_VARARGS,	elementunlock__doc__},
 	{"handleEvents",(PyCFunction)pyalsahcontrol_handleevents,	METH_NOARGS,	handlevents__doc__},
 	{"registerPoll",(PyCFunction)pyalsahcontrol_registerpoll,	METH_VARARGS|METH_KEYWORDS,	registerpoll__doc__},
 	{NULL}
@@ -280,6 +446,40 @@ static PyObject *
 pyalsahcontrolelement_uint(struct pyalsahcontrolelement *pyhelem, void *fcn)
 {
 	return PyInt_FromLong(((fcn1)fcn)(pyhelem->elem));
+}
+
+PyDoc_STRVAR(elock__doc__,
+"lock() -- Lock this element.\n");
+
+static PyObject *
+pyalsahcontrolelement_lock(struct pyalsahcontrolelement *pyhelem, PyObject *args)
+{
+	snd_ctl_elem_id_t *id;
+	int res;
+	
+	snd_ctl_elem_id_alloca(&id);
+	snd_hctl_elem_get_id(pyhelem->elem, id);
+	res = snd_ctl_elem_lock(snd_hctl_ctl(pyhelem->handle), id);
+	if (res < 0)
+		return PyErr_Format(PyExc_IOError, "element lock error: %s", snd_strerror(-res));
+	Py_RETURN_NONE;
+}
+
+PyDoc_STRVAR(eunlock__doc__,
+"unlock() -- Unlock this element.\n");
+
+static PyObject *
+pyalsahcontrolelement_unlock(struct pyalsahcontrolelement *pyhelem, PyObject *args)
+{
+	snd_ctl_elem_id_t *id;
+	int res;
+	
+	snd_ctl_elem_id_alloca(&id);
+	snd_hctl_elem_get_id(pyhelem->elem, id);
+	res = snd_ctl_elem_unlock(snd_hctl_ctl(pyhelem->handle), id);
+	if (res < 0)
+		return PyErr_Format(PyExc_IOError, "element unlock error: %s", snd_strerror(-res));
+	Py_RETURN_NONE;
 }
 
 PyDoc_STRVAR(setcallback__doc__,
@@ -400,6 +600,9 @@ static PyGetSetDef pyalsahcontrolelement_getseters[] = {
 };
 
 static PyMethodDef pyalsahcontrolelement_methods[] = {
+
+	{"lock",	(PyCFunction)pyalsahcontrolelement_lock,	METH_NOARGS,	elock__doc__},
+	{"unlock",	(PyCFunction)pyalsahcontrolelement_unlock,	METH_NOARGS,	eunlock__doc__},
 
 	{"setCallback",	(PyCFunction)pyalsahcontrolelement_setcallback,	METH_VARARGS,	setcallback__doc__},
 
@@ -660,7 +863,6 @@ static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 };
 
 static PyMethodDef pyalsahcontrolinfo_methods[] = {
-
 	{NULL}
 };
 
