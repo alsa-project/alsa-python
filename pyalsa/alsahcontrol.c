@@ -252,6 +252,7 @@ pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 		PyErr_SetString(PyExc_TypeError, "type argument is not integer");
 		return NULL;
 	}
+	Py_INCREF(o);
 	type = PyInt_AsLong(o);
 	o = PyTuple_GetItem(args, 1);
 	if (!PyTuple_Check(o)) {
@@ -1024,6 +1025,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			v = PyTuple_GetItem(t, i);
 			if (v == Py_None)
 				continue;
+			Py_INCREF(v);
 			snd_ctl_elem_value_set_boolean(self->value, i, PyInt_AsLong(v));
 		}
 		break;
@@ -1032,6 +1034,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			v = PyTuple_GetItem(t, i);
 			if (v == Py_None)
 				continue;
+			Py_INCREF(v);
 			snd_ctl_elem_value_set_integer(self->value, i, PyInt_AsLong(v));
 		}
 		break;
@@ -1040,6 +1043,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			v = PyTuple_GetItem(t, i);
 			if (v == Py_None)
 				continue;
+			Py_INCREF(v);
 			snd_ctl_elem_value_set_integer64(self->value, i, PyLong_AsLongLong(v));
 		}
 		break;
@@ -1048,6 +1052,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			v = PyTuple_GetItem(t, i);
 			if (v == Py_None)
 				continue;
+			Py_INCREF(v);
 			snd_ctl_elem_value_set_enumerated(self->value, i, PyInt_AsLong(v));
 		}
 		break;
@@ -1056,6 +1061,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			v = PyTuple_GetItem(t, i);
 			if (v == Py_None)
 				continue;
+			Py_INCREF(v);
 			snd_ctl_elem_value_set_byte(self->value, i, PyInt_AsLong(v));
 		}
 		break;
@@ -1070,18 +1076,25 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			Py_RETURN_NONE;
 		}
 		len = 0;
-		if (PyString_AsStringAndSize(PyTuple_GET_ITEM(t, 0), &str, &len))
+		v = PyTuple_GET_ITEM(t, 0);
+		Py_INCREF(v);
+		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
 		if (len > sizeof(iec958->status))
 			len = sizeof(iec958->status);
 		memcpy(iec958->status, str, len);
 		len = 0;
+		v = PyTuple_GET_ITEM(t, 1);
+		Py_INCREF(v);
+		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
 		if (len > sizeof(iec958->subcode))
 			len = sizeof(iec958->subcode);
 		memcpy(iec958->subcode, str, len);
 		len = 0;
-		if (PyString_AsStringAndSize(PyTuple_GET_ITEM(t, 2), &str, &len))
+		v = PyTuple_GET_ITEM(t, 2);
+		Py_INCREF(v);
+		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
 		if (len > sizeof(iec958->dig_subframe))
 			len = sizeof(iec958->dig_subframe);
@@ -1097,7 +1110,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		break;
 	}
 
-	return t;
+	Py_RETURN_NONE;
 }
 
 PyDoc_STRVAR(read__doc__,
