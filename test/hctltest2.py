@@ -1,6 +1,9 @@
 #! /usr/bin/python
 # -*- Python -*-
 
+import sys
+sys.path.insert(0, '../pyalsa')
+del sys
 import select
 import alsahcontrol
 

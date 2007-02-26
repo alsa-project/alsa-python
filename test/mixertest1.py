@@ -1,6 +1,10 @@
 #! /usr/bin/python
 # -*- Python -*-
 
+import sys
+sys.path.insert(0, '../pyalsa')
+del sys
+from alsamemdebug import debuginit, debug, debugdone
 import alsamixer
 
 def print_elem(e):
@@ -28,6 +32,8 @@ def print_elem(e):
 			if e.hasChannel(channel, capture):
 				print  '  has%sChannel%s: %s' % (direction[capture], channel, alsamixer.ChannelName[channel])
 
+debuginit()
+
 print 'ChannelId:'
 print alsamixer.ChannelId
 
@@ -52,4 +58,10 @@ element = alsamixer.Element(mixer, "PCM")
 element.setVolumeTuple((128, 128))
 print_elem(element)
 print_elem(alsamixer.Element(mixer, "Off-hook"))
+
+debug([element])
+del element
+debug([mixer])
 del mixer
+
+debugdone()

@@ -1,8 +1,12 @@
 syntax: glob
 
 build/*
+dist/*
 old/*
 *~
 .*~
 *.orig
 *.rej
+*.pyc
+MANIFEST
+version

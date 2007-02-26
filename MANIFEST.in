@@ -1,1 +1,2 @@
+include test/*.py
 include utils/*.py
