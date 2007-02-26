@@ -5,9 +5,23 @@ import os
 import sys
 from distutils.core import setup, Extension
 
+VERSION='1.0.14rc3'
+
+if os.path.exists("version"):
+	fp = open("version", "r")
+	ver = fp.readline()
+	fp.close()
+	ver = ver[:-1]
+else:
+	ver = None
+if ver != VERSION:
+	fp = open("version", "w+")
+	fp.write(VERSION + '\n')
+	fp.close()
+del fp
 setup(
 	name='pyalsa',
-        version='1.0.14rc3',
+        version=VERSION,
         author="The ALSA Team",
         author_email='alsa-devel@alsa-project.org',
         ext_modules=[
