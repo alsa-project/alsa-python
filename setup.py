@@ -7,7 +7,7 @@ from distutils.core import setup, Extension
 
 setup(
 	name='pyalsa',
-        version='0.1',
+        version='1.0.14rc3',
         author="The ALSA Team",
         author_email='alsa-devel@alsa-project.org',
         ext_modules=[
