@@ -650,7 +650,7 @@ typedef int (*fcn2)(void *);
 static PyObject *
 pyalsahcontrolinfo_bool(struct pyalsahcontrolinfo *pyinfo, void *fcn)
 {
-	return get_bool(((fcn2)fcn)(pyinfo->elem));
+	return get_bool(((fcn2)fcn)(pyinfo->info));
 }
 
 static PyObject *
