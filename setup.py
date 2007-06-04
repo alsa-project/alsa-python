@@ -5,7 +5,7 @@ import os
 import sys
 from distutils.core import setup, Extension
 
-VERSION='1.0.14rc4'
+VERSION='1.0.14'
 
 if os.path.exists("version"):
 	fp = open("version", "r")
