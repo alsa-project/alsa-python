@@ -1450,7 +1450,7 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 			
 		if (r) {
 			if (PyInt_Check(r)) {
-				res = PyInt_AsLong(o);
+				res = PyInt_AsLong(r);
 			} else if (r == Py_None) {
 				res = 0;
 			}
