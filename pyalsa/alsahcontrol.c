@@ -136,6 +136,12 @@ pyalsahcontrol_getcount(struct pyalsahcontrol *self, void *priv)
 	return PyLong_FromLong(snd_hctl_get_count(self->handle));
 }
 
+static PyObject *
+pyalsahcontrol_getChctl(struct pyalsahcontrol *self, void *priv)
+{
+	return PyInt_FromLong((long)self->handle);
+}
+
 PyDoc_STRVAR(handlevents__doc__,
 "handleEvents() -- Process waiting hcontrol events (and call appropriate callbacks).");
 
@@ -349,13 +355,13 @@ static int
 pyalsahcontrol_init(struct pyalsahcontrol *pyhctl, PyObject *args, PyObject *kwds)
 {
 	char *name = "default";
-	int mode = 0, err;
+	int mode = 0, load = 1, err;
 
-	static char * kwlist[] = { "name", "mode", NULL };
+	static char * kwlist[] = { "name", "mode", "load", NULL };
 
 	pyhctl->handle = NULL;
 
-	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|si", kwlist, &name, &mode))
+	if (!PyArg_ParseTupleAndKeywords(args, kwds, "|sii", kwlist, &name, &mode, &load))
 		return -1;
 
 	err = snd_hctl_open(&pyhctl->handle, name, mode);
@@ -365,13 +371,15 @@ pyalsahcontrol_init(struct pyalsahcontrol *pyhctl, PyObject *args, PyObject *kwd
 		return -1;
 	}
 
-	err = snd_hctl_load(pyhctl->handle);
-	if (err < 0) {
-		snd_hctl_close(pyhctl->handle);
-		pyhctl->handle = NULL;
-		PyErr_Format(PyExc_IOError,
-			     "HControl load error: %s", strerror(-err));
-		return -1;
+	if (load) {
+		err = snd_hctl_load(pyhctl->handle);
+		if (err < 0) {
+			snd_hctl_close(pyhctl->handle);
+			pyhctl->handle = NULL;
+			PyErr_Format(PyExc_IOError,
+				     "HControl load error: %s", strerror(-err));
+			return -1;
+		}
 	}
 
 	return 0;
@@ -389,6 +397,7 @@ pyalsahcontrol_dealloc(struct pyalsahcontrol *self)
 static PyGetSetDef pyalsahcontrol_getseters[] = {
 
 	{"count",	(getter)pyalsahcontrol_getcount,	NULL,	"hcontrol element count",		NULL},
+	{"get_C_hctl",	(getter)pyalsahcontrol_getChctl,	NULL,	"hcontrol C pointer (internal)",	NULL},
 
 	{NULL}
 };
@@ -447,6 +456,12 @@ static PyObject *
 pyalsahcontrolelement_uint(struct pyalsahcontrolelement *pyhelem, void *fcn)
 {
 	return PyInt_FromLong(((fcn1)fcn)(pyhelem->elem));
+}
+
+static PyObject *
+pyalsahcontrolelement_getChelem(struct pyalsahcontrolelement *self, void *priv)
+{
+	return PyInt_FromLong((long)self->elem);
 }
 
 PyDoc_STRVAR(elock__doc__,
@@ -521,6 +536,8 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	int numid = 0, iface = 0, device = 0, subdevice = 0, index = 0;
 	snd_ctl_elem_id_t *id;
 	static char *kwlist1[] = { "hctl", "interface", "device", "subdevice", "name", "index" };
+	long helem = 0;
+	float f = 0;
 
 	snd_ctl_elem_id_alloca(&id);
 	pyhelem->pyhandle = NULL;
@@ -532,7 +549,10 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 		return -1;
 	}
 	first = PyTuple_GetItem(args, 1);
-	if (PyInt_Check(first)) {
+	if (PyFloat_Check(first)) {
+		if (!PyArg_ParseTuple(args, "Ofi", &hctl, &f, &helem))
+			return -1;
+	} else if (PyInt_Check(first)) {
 		if (!PyArg_ParseTuple(args, "Oi", &hctl, &numid))
 			return -1;
 		snd_ctl_elem_id_set_numid(id, numid);
@@ -562,7 +582,8 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	Py_INCREF(hctl);
 	pyhelem->handle = PYHCTL(hctl)->handle;
 
-	pyhelem->elem = snd_hctl_find_elem(pyhelem->handle, id);
+	pyhelem->elem = helem > 0 ? (snd_hctl_elem_t *)helem :
+				snd_hctl_find_elem(pyhelem->handle, id);
 	if (pyhelem->elem == NULL) {
 		if (numid == 0)
 			PyErr_Format(PyExc_IOError, "cannot find hcontrol element %i,%i,%i,'%s',%i", iface, device, subdevice, name, index);
@@ -596,6 +617,7 @@ static PyGetSetDef pyalsahcontrolelement_getseters[] = {
 	{"subdevice",	(getter)pyalsahcontrolelement_uint,	NULL,	"hcontrol element subdevice",	snd_hctl_elem_get_subdevice},
 	{"name",	(getter)pyalsahcontrolelement_getname,	NULL,	"hcontrol element name",	NULL},
 	{"index",	(getter)pyalsahcontrolelement_uint,	NULL,	"hcontrol element index",	snd_hctl_elem_get_index},
+	{"get_C_helem",	(getter)pyalsahcontrolelement_getChelem, NULL,	"hcontrol element C pointer (internal)", NULL },
 	
 	{NULL}
 };
