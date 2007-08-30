@@ -453,10 +453,10 @@ pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getvolumetuple__doc__,
-"getVolumeArray([capture=False]]) -- Get volume and store result to array.");
+"getVolumeTuple([capture=False]]) -- Get volume and store result to tuple.");
 
 static PyObject *
-pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *args)
+pyalsamixerelement_getvolumetuple(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0, i, last;
 	long val;
@@ -526,6 +526,84 @@ pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *a
 	return t;
 }
 
+PyDoc_STRVAR(getvolumearray__doc__,
+"getVolumeArray([capture=False]]) -- Get volume and store result to array.");
+
+static PyObject *
+pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *args)
+{
+	int res, dir = 0, i, last;
+	long val;
+	PyObject *t, *l;
+
+	if (!PyArg_ParseTuple(args, "|I", &dir))
+		return NULL;
+
+	if (dir == 0) {
+		if (snd_mixer_selem_is_playback_mono(pyelem->elem)) {
+			t = PyList_New(1);
+			if (!t)
+				return NULL;
+ 			res = snd_mixer_selem_get_playback_volume(pyelem->elem, SND_MIXER_SCHN_MONO, &val);
+ 			if (res >= 0)
+ 				PyTuple_SetItem(t, 0, PyInt_FromLong(val));
+		} else {
+			t = PyList_New(SND_MIXER_SCHN_LAST+1);
+			if (!t)
+				return NULL;
+			for (i = last = 0; i <= SND_MIXER_SCHN_LAST; i++) {
+				res = -1;
+				if (snd_mixer_selem_has_playback_channel(pyelem->elem, i)) {
+					res = snd_mixer_selem_get_playback_volume(pyelem->elem, i, &val);
+					if (res >= 0) {
+						while (last < i) {
+							Py_INCREF(Py_None);
+							PyList_SetItem(t, last, Py_None);
+							last++;
+						}
+						PyList_SetItem(t, i, PyInt_FromLong(val));
+						last++;
+					}
+				}
+			}
+			l = PyList_GetSlice(t, 0, last);
+			Py_DECREF(t);
+			t = l;
+		}
+	} else {
+		if (snd_mixer_selem_is_capture_mono(pyelem->elem)) {
+			t = PyList_New(1);
+			if (!t)
+				return NULL;
+ 			res = snd_mixer_selem_get_capture_volume(pyelem->elem, SND_MIXER_SCHN_MONO, &val);
+ 			if (res >= 0)
+ 				PyTuple_SET_ITEM(t, 0, PyInt_FromLong(val));
+		} else {
+			t = PyList_New(SND_MIXER_SCHN_LAST+1);
+			if (!t)
+				return NULL;
+			for (i = last = 0; i <= SND_MIXER_SCHN_LAST; i++) {
+				res = -1;
+				if (snd_mixer_selem_has_capture_channel(pyelem->elem, i)) {
+					res = snd_mixer_selem_get_capture_volume(pyelem->elem, i, &val);
+					if (res >= 0) {
+						while (last < i) {
+							Py_INCREF(Py_None);
+							PyList_SetItem(t, last, Py_None);
+							last++;
+						}
+						PyList_SetItem(t, i, PyInt_FromLong(val));
+					}
+				}
+			}
+			l = PyList_GetSlice(t, 0, last);
+			Py_DECREF(t);
+			t = l;
+		}
+	}
+	return t;
+}
+
 PyDoc_STRVAR(setvolume__doc__,
 "setVolume(value, [channel=ChannelId['MONO'], [capture=False]]) -- Set volume.");
 
@@ -549,6 +627,9 @@ pyalsamixerelement_setvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 PyDoc_STRVAR(setvolumetuple__doc__,
 "setVolumeTuple(value, [capture=False]]) -- Set volume level from tuple.");
 
+PyDoc_STRVAR(setvolumearray__doc__,
+"setVolumeArray(value, [capture=False]]) -- Set volume level from array.");
+
 static PyObject *
 pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *args)
 {
@@ -558,23 +639,42 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 
 	if (!PyArg_ParseTuple(args, "O|I", &t, &dir))
 		return NULL;
-	if (!PyTuple_Check(t))
+	if (!PyTuple_Check(t) && !PyList_Check(t))
 		return PyErr_Format(PyExc_RuntimeError, "Volume values in tuple are expected!");
-	for (i = 0; i < PyTuple_Size(t); i++) {
-		o = PyTuple_GetItem(t, i);
-		if (o == Py_None)
-			continue;
-		if (!PyInt_Check(o)) {
-			PyErr_Format(PyExc_RuntimeError, "Only None or Int types are expected!");
-			break;
+	if (PyTuple_Check(t)) {
+		for (i = 0; i < PyTuple_Size(t); i++) {
+			o = PyTuple_GetItem(t, i);
+			if (o == Py_None)
+				continue;
+			if (!PyInt_Check(o)) {
+				PyErr_Format(PyExc_RuntimeError, "Only None or Int types are expected!");
+				break;
+			}
+			val = PyInt_AsLong(o);
+			if (dir == 0)
+				res = snd_mixer_selem_set_playback_volume(pyelem->elem, i, val);
+			else
+				res = snd_mixer_selem_set_capture_volume(pyelem->elem, i, val);
+			if (res < 0)
+				 PyErr_Format(PyExc_RuntimeError, "Cannot set mixer volume (capture=%s, channel=%i, value=%li): %s", dir ? "True" : "False", i, val, snd_strerror(-res));
 		}
-		val = PyInt_AsLong(o);
-		if (dir == 0)
-			res = snd_mixer_selem_set_playback_volume(pyelem->elem, i, val);
-		else
-			res = snd_mixer_selem_set_capture_volume(pyelem->elem, i, val);
-		if (res < 0)
-			 PyErr_Format(PyExc_RuntimeError, "Cannot set mixer volume (capture=%s, channel=%i, value=%li): %s", dir ? "True" : "False", i, val, snd_strerror(-res));
+	} else {
+		for (i = 0; i < PyList_Size(t); i++) {
+			o = PyList_GetItem(t, i);
+			if (o == Py_None)
+				continue;
+			if (!PyInt_Check(o)) {
+				PyErr_Format(PyExc_RuntimeError, "Only None or Int types are expected!");
+				break;
+			}
+			val = PyInt_AsLong(o);
+			if (dir == 0)
+				res = snd_mixer_selem_set_playback_volume(pyelem->elem, i, val);
+			else
+				res = snd_mixer_selem_set_capture_volume(pyelem->elem, i, val);
+			if (res < 0)
+				 PyErr_Format(PyExc_RuntimeError, "Cannot set mixer volume (capture=%s, channel=%i, value=%li): %s", dir ? "True" : "False", i, val, snd_strerror(-res));
+		}
 	}
 	Py_DECREF(t);
 	Py_RETURN_NONE;
@@ -1005,8 +1105,10 @@ static PyMethodDef pyalsamixerelement_methods[] = {
 
 	{"getVolume",	(PyCFunction)pyalsamixerelement_getvolume,	METH_VARARGS,	getvolume__doc__},
 	{"getVolumeTuple", (PyCFunction)pyalsamixerelement_getvolumetuple, METH_VARARGS,getvolumetuple__doc__},
+	{"getVolumeArray", (PyCFunction)pyalsamixerelement_getvolumearray, METH_VARARGS,getvolumearray__doc__},
 	{"setVolume",	(PyCFunction)pyalsamixerelement_setvolume,	METH_VARARGS,	setvolume__doc__},
 	{"setVolumeTuple", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumetuple__doc__},
+	{"setVolumeArray", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumearray__doc__},
 	{"setVolumeAll",(PyCFunction)pyalsamixerelement_setvolumeall,	METH_VARARGS,	setvolumeall__doc__},
 	{"getVolumeRange", (PyCFunction)pyalsamixerelement_getrange,	METH_VARARGS,	getrange__doc__},
 	{"setVolumeRange", (PyCFunction)pyalsamixerelement_setrange,	METH_VARARGS,	setrange__doc__},

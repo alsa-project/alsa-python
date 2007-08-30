@@ -25,6 +25,7 @@ def print_elem(e):
 			print '  get%sVolumeRange: %s' % (direction[capture], e.getVolumeRange(capture))
 			print '  get%sVolumeRange_dB: %s' % (direction[capture], e.getVolumeRange_dB(capture))
 			print '  get%sVolumeTuple: %s' % (direction[capture], e.getVolumeTuple(capture)) 
+			print '  get%sVolumeArray: %s' % (direction[capture], e.getVolumeArray(capture)) 
 		print '  has%sSwitch: %s' % (direction[capture], e.hasSwitch(capture))
 		if e.hasSwitch(capture):
 			print '  get%sSwitchTuple: %s' % (direction[capture], e.getSwitchTuple(capture)) 
@@ -55,7 +56,9 @@ print 'Element Count:', mixer.count
 print 'Elements:'
 print mixer.list()
 element = alsamixer.Element(mixer, "PCM")
-element.setVolumeTuple((128, 128))
+element.setVolumeArray([128, 128])
+print_elem(element)
+element.setVolumeTuple([127, 127])
 print_elem(element)
 print_elem(alsamixer.Element(mixer, "Off-hook"))
 
