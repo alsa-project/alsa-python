@@ -453,10 +453,10 @@ pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getvolumetuple__doc__,
-"getVolumeTuple([capture=False]]) -- Get volume and store result to tuple.");
+"getVolumeArray([capture=False]]) -- Get volume and store result to array.");
 
 static PyObject *
-pyalsamixerelement_getvolumetuple(struct pyalsamixerelement *pyelem, PyObject *args)
+pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0, i, last;
 	long val;
