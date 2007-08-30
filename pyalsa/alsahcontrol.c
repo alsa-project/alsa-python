@@ -954,13 +954,16 @@ pyalsahcontrolvalue_id(struct pyalsahcontrolvalue *pyvalue, void *priv)
 PyDoc_STRVAR(gettuple__doc__,
 "getTuple(type, count) -- Get hcontrol element values in tuple.");
 
+PyDoc_STRVAR(getarray__doc__,
+"getArray(type, count) -- Get hcontrol element values in array.");
+
 static PyObject *
-pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
+pyalsahcontrolvalue_get1(struct pyalsahcontrolvalue *self, PyObject *args, int list)
 {
 	int type;
 	long i, count;
 	snd_aes_iec958_t *iec958;
-	PyObject *t;
+	PyObject *t, *o;
 
 	if (!PyArg_ParseTuple(args, "il", &type, &count))
 		return NULL;
@@ -973,30 +976,57 @@ pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			Py_RETURN_NONE;
 		count = 3;
 	}
-	t = PyTuple_New(count);
+	t = !list ? PyTuple_New(count) : PyList_New(count);
 	if (t == NULL)
 		return NULL;
 
 	switch (type) {
 	case SND_CTL_ELEM_TYPE_BOOLEAN:
-		for (i = 0; i < count; i++)
-			PyTuple_SET_ITEM(t, i, get_bool(snd_ctl_elem_value_get_boolean(self->value, i)));
+		for (i = 0; i < count; i++) {
+ 			o = get_bool(snd_ctl_elem_value_get_boolean(self->value, i));
+			if (!list)
+				PyTuple_SET_ITEM(t, i, o);
+			else
+				PyList_SetItem(t, i, o);
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER:
-		for (i = 0; i < count; i++)
-			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_integer(self->value, i)));
+		for (i = 0; i < count; i++) {
+			o = PyInt_FromLong(snd_ctl_elem_value_get_integer(self->value, i));
+			if (!list)
+				PyTuple_SET_ITEM(t, i, o);
+			else
+				PyList_SetItem(t, i, o);
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER64:
-		for (i = 0; i < count; i++)
-			PyTuple_SET_ITEM(t, i, PyLong_FromLongLong(snd_ctl_elem_value_get_integer64(self->value, i)));
+		for (i = 0; i < count; i++) {
+			o = PyLong_FromLongLong(snd_ctl_elem_value_get_integer64(self->value, i));
+			if (!list)
+				PyTuple_SET_ITEM(t, i, o);
+			else
+				PyList_SetItem(t, i, o);
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
-		for (i = 0; i < count; i++)
-			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_enumerated(self->value, i)));
+		for (i = 0; i < count; i++) {
+			o = PyInt_FromLong(snd_ctl_elem_value_get_enumerated(self->value, i));
+			if (!list) {
+				PyTuple_SET_ITEM(t, i, o);
+			} else {
+				PyList_SetItem(t, i, o);
+			}
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_BYTES:
-		for (i = 0; i < count; i++)
-			PyTuple_SET_ITEM(t, i, PyInt_FromLong(snd_ctl_elem_value_get_byte(self->value, i)));
+		for (i = 0; i < count; i++) {
+			o = PyInt_FromLong(snd_ctl_elem_value_get_byte(self->value, i));
+			if (!list) {
+				PyTuple_SET_ITEM(t, i, o);
+			} else {
+				PyList_SetItem(t, i, o);
+			}
+		}
 		break;
 	case SND_CTL_ELEM_TYPE_IEC958:
 		iec958 = malloc(sizeof(*iec958));
@@ -1005,9 +1035,15 @@ pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			Py_RETURN_NONE;
 		}
 		snd_ctl_elem_value_get_iec958(self->value, iec958);
-		PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
-		PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
-		PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+		if (!list) {
+			PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
+			PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
+			PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+		} else {
+			PyList_SetItem(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
+			PyList_SetItem(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
+			PyList_SetItem(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+		}
 		free(iec958);
 		break;
 	default:
@@ -1019,13 +1055,30 @@ pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
 	return t;
 }
 
+static PyObject *
+pyalsahcontrolvalue_gettuple(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	return pyalsahcontrolvalue_get1(self, args, 0);
+}
+
+
+static PyObject *
+pyalsahcontrolvalue_getarray(struct pyalsahcontrolvalue *self, PyObject *args)
+{
+	return pyalsahcontrolvalue_get1(self, args, 1);
+}
+
+
 PyDoc_STRVAR(settuple__doc__,
-"setTuple(type, val) -- Get hcontrol element values from tuple.");
+"setTuple(type, val) -- Set hcontrol element values from tuple.");
+
+PyDoc_STRVAR(setarray__doc__,
+"setArray(type, val) -- Set hcontrol element values from array.");
 
 static PyObject *
 pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 {
-	int type, len;
+	int type, len, list;
 	long i, count;
 	snd_aes_iec958_t *iec958;
 	PyObject *t, *v;
@@ -1034,17 +1087,18 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "iO", &type, &t))
 		return NULL;
 
-	if (!PyTuple_Check(t)) {
+	list = PyList_Check(t);
+	if (!PyTuple_Check(t) && !list) {
 		PyErr_SetString(PyExc_TypeError, "Tuple expected as val argument!");
 		return NULL;
 	}
 
-	count = PyTuple_Size(t);
+	count = !list ? PyTuple_Size(t) : PyList_Size(t);
 
 	switch (type) {
 	case SND_CTL_ELEM_TYPE_BOOLEAN:
 		for (i = 0; i < count; i++) {
-			v = PyTuple_GetItem(t, i);
+			v = !list ? PyTuple_GetItem(t, i) : PyList_GetItem(t, i);
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
@@ -1053,7 +1107,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER:
 		for (i = 0; i < count; i++) {
-			v = PyTuple_GetItem(t, i);
+			v = !list ? PyTuple_GetItem(t, i) : PyList_GetItem(t, i);
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
@@ -1062,7 +1116,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER64:
 		for (i = 0; i < count; i++) {
-			v = PyTuple_GetItem(t, i);
+			v = !list ? PyTuple_GetItem(t, i) : PyList_GetItem(t, i);
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
@@ -1071,7 +1125,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		break;
 	case SND_CTL_ELEM_TYPE_ENUMERATED:
 		for (i = 0; i < count; i++) {
-			v = PyTuple_GetItem(t, i);
+			v = !list ? PyTuple_GetItem(t, i) : PyList_GetItem(t, i);
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
@@ -1080,7 +1134,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		break;
 	case SND_CTL_ELEM_TYPE_BYTES:
 		for (i = 0; i < count; i++) {
-			v = PyTuple_GetItem(t, i);
+			v = !list ? PyTuple_GetItem(t, i) : PyList_GetItem(t, i);
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
@@ -1088,7 +1142,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		}
 		break;
 	case SND_CTL_ELEM_TYPE_IEC958:
-		if (PyTuple_Size(t) != 3) {
+		if (count != 3) {
 			PyErr_SetString(PyExc_TypeError, "Tuple with len == 3 expected for IEC958 type!");
 			return NULL;
 		}
@@ -1098,7 +1152,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			Py_RETURN_NONE;
 		}
 		len = 0;
-		v = PyTuple_GET_ITEM(t, 0);
+		v = !list ? PyTuple_GET_ITEM(t, 0) : PyList_GetItem(t, 0);
 		Py_INCREF(v);
 		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
@@ -1106,7 +1160,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			len = sizeof(iec958->status);
 		memcpy(iec958->status, str, len);
 		len = 0;
-		v = PyTuple_GET_ITEM(t, 1);
+		v = !list ? PyTuple_GET_ITEM(t, 1) : PyList_GetItem(t, 1);
 		Py_INCREF(v);
 		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
@@ -1114,7 +1168,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			len = sizeof(iec958->subcode);
 		memcpy(iec958->subcode, str, len);
 		len = 0;
-		v = PyTuple_GET_ITEM(t, 2);
+		v = !list ? PyTuple_GET_ITEM(t, 2) : PyList_GetItem(t, 2);
 		Py_INCREF(v);
 		if (PyString_AsStringAndSize(v, &str, &len))
 			goto err1;
@@ -1235,7 +1289,9 @@ static PyGetSetDef pyalsahcontrolvalue_getseters[] = {
 static PyMethodDef pyalsahcontrolvalue_methods[] = {
 
 	{"getTuple",	(PyCFunction)pyalsahcontrolvalue_gettuple,	METH_VARARGS,	gettuple__doc__},
+	{"getArray",	(PyCFunction)pyalsahcontrolvalue_getarray,	METH_VARARGS,	getarray__doc__},
 	{"setTuple",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	settuple__doc__},
+	{"setArray",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	setarray__doc__},
 
 	{"read",	(PyCFunction)pyalsahcontrolvalue_read,		METH_NOARGS,	read__doc__},
 	{"write",	(PyCFunction)pyalsahcontrolvalue_write,		METH_NOARGS,	write__doc__},
