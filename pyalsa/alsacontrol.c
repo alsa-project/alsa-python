@@ -80,9 +80,7 @@ pyalsacontrol_cardinfo(struct pyalsacontrol *self, PyObject *args)
 	if (err < 0) {
 		PyErr_Format(PyExc_IOError,
 		     "Control card info error: %s", strerror(-err));
-		Py_RETURN_NONE;
-	} else {
-		
+		return NULL;
 	}
 	d = PyDict_New();
 	if (d) {
@@ -95,6 +93,59 @@ pyalsacontrol_cardinfo(struct pyalsacontrol *self, PyObject *args)
 		PyDict_SetItem(d, PyString_FromString("components"), PyString_FromString(snd_ctl_card_info_get_components(info)));
 	}
 	return d;
+}
+
+static PyObject *
+devices(struct pyalsacontrol *self, PyObject *args,
+			   int (*fcn)(snd_ctl_t *, int *))
+{
+	int dev, err, size = 0;
+	PyObject *t;
+
+	dev = -1;
+	t = PyTuple_New(size);
+	do {
+		err = fcn(self->handle, &dev);
+		if (err < 0) {
+			PyErr_Format(PyExc_IOError,
+			     "Control hwdep_next_device error: %s", strerror(-err));
+			Py_DECREF(t);
+			return NULL;
+		}
+		if (dev >= 0) {
+			_PyTuple_Resize(&t, ++size);
+			if (t)
+				PyTuple_SetItem(t, size-1, PyInt_FromLong(dev));
+		}
+	} while (dev >= 0);
+	return t;
+}
+
+PyDoc_STRVAR(hwdepdevices__doc__,
+"hwdepDevices() -- Return a tuple with available hwdep devices.");
+
+static PyObject *
+pyalsacontrol_hwdepdevices(struct pyalsacontrol *self, PyObject *args)
+{
+	return devices(self, args, snd_ctl_hwdep_next_device);
+}
+
+PyDoc_STRVAR(pcmdevices__doc__,
+"pcmDevices() -- Return a tuple with available PCM devices.");
+
+static PyObject *
+pyalsacontrol_pcmdevices(struct pyalsacontrol *self, PyObject *args)
+{
+	return devices(self, args, snd_ctl_pcm_next_device);
+}
+
+PyDoc_STRVAR(rawmididevices__doc__,
+"rawmidiDevices() -- Return a tuple with available RawMidi devices.");
+
+static PyObject *
+pyalsacontrol_rawmididevices(struct pyalsacontrol *self, PyObject *args)
+{
+	return devices(self, args, snd_ctl_rawmidi_next_device);
 }
 
 PyDoc_STRVAR(alsacontrolinit__doc__,
@@ -141,6 +192,9 @@ static PyGetSetDef pyalsacontrol_getseters[] = {
 static PyMethodDef pyalsacontrol_methods[] = {
 
 	{"cardInfo",	(PyCFunction)pyalsacontrol_cardinfo,	METH_NOARGS,	cardinfo__doc__},
+	{"hwdepDevices",(PyCFunction)pyalsacontrol_hwdepdevices,	METH_NOARGS,	hwdepdevices__doc__},
+	{"pcmDevices",	(PyCFunction)pyalsacontrol_pcmdevices,	METH_NOARGS,	pcmdevices__doc__},
+	{"rawmidiDevices",(PyCFunction)pyalsacontrol_rawmididevices,	METH_NOARGS,	rawmididevices__doc__},
 	{NULL}
 };
 
