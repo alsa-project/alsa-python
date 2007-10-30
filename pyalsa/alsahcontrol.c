@@ -535,7 +535,7 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	char *name = "Default";
 	int numid = 0, iface = 0, device = 0, subdevice = 0, index = 0;
 	snd_ctl_elem_id_t *id;
-	static char *kwlist1[] = { "hctl", "interface", "device", "subdevice", "name", "index" };
+	static char *kwlist1[] = { "hctl", "interface", "device", "subdevice", "name", "index", NULL };
 	long helem = 0;
 	float f = 0;
 
@@ -559,7 +559,7 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	} else if (PyTuple_Check(first)) {
 		if (!PyArg_ParseTuple(args, "OO", &hctl, &first))
 			return -1;
-		if (!PyArg_ParseTupleAndKeywords(first, kwds, "|iiisi", kwlist1 + 1, &iface, &device, &subdevice, &name, &index))
+		if (!PyArg_ParseTuple(first, "iiis|i", &iface, &device, &subdevice, &name, &index))
 			return -1;
 		goto parse1;
 	} else {
@@ -1036,13 +1036,13 @@ pyalsahcontrolvalue_get1(struct pyalsahcontrolvalue *self, PyObject *args, int l
 		}
 		snd_ctl_elem_value_get_iec958(self->value, iec958);
 		if (!list) {
-			PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
-			PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
-			PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		} else {
-			PyList_SetItem(t, 0, PyString_FromStringAndSize(iec958->status, sizeof(iec958->status)));
-			PyList_SetItem(t, 1, PyString_FromStringAndSize(iec958->subcode, sizeof(iec958->subcode)));
-			PyList_SetItem(t, 2, PyString_FromStringAndSize(iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyList_SetItem(t, 0, PyString_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyList_SetItem(t, 1, PyString_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyList_SetItem(t, 2, PyString_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		}
 		free(iec958);
 		break;
