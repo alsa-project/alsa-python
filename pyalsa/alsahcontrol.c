@@ -229,10 +229,10 @@ pyalsahcontrol_list(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(elementnew__doc__,
-"elementNew(elementType['Integer'], id, count, min, max, step)\n"
-"elementNew(elementType['Integer64'], id, count, min64, max64, step64)\n"
-"elementNew(elementType['Boolean'], id, count)\n"
-"elementNew(elementType['IEC958'], id)\n"
+"elementNew(ElementType['Integer'], id, count, min, max, step)\n"
+"elementNew(ElementType['Integer64'], id, count, min64, max64, step64)\n"
+"elementNew(ElementType['Boolean'], id, count)\n"
+"elementNew(ElementType['IEC958'], id)\n"
 "  -- Create a new hcontrol element.\n"
 "  -- The id argument is tuple (interface, device, subdevice, name, index).\n");
 
