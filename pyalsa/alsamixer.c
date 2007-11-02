@@ -137,7 +137,11 @@ PyDoc_STRVAR(handlevents__doc__,
 static PyObject *
 pyalsamixer_handleevents(struct pyalsamixer *self, PyObject *args)
 {
-	int err = snd_mixer_handle_events(self->handle);
+	int err;
+
+	Py_BEGIN_ALLOW_THREADS;
+	err = snd_mixer_handle_events(self->handle);
+	Py_END_ALLOW_THREADS;
 	if (err < 0)
 		PyErr_Format(PyExc_IOError,
 		     "Alsamixer handle events error: %s", strerror(-err));

@@ -148,7 +148,11 @@ PyDoc_STRVAR(handlevents__doc__,
 static PyObject *
 pyalsahcontrol_handleevents(struct pyalsahcontrol *self, PyObject *args)
 {
-	int err = snd_hctl_handle_events(self->handle);
+	int err;
+	
+	Py_BEGIN_ALLOW_THREADS;
+	err = snd_hctl_handle_events(self->handle);
+	Py_END_ALLOW_THREADS;
 	if (err < 0)
 		PyErr_Format(PyExc_IOError,
 		     "HControl handle events error: %s", strerror(-err));
