@@ -45,6 +45,11 @@ setup(
                     include_dirs=[],
                     library_dirs=[],
                     libraries=['asound']),
+          Extension('pyalsa.alsaseq',
+		    ['pyalsa/alsaseq.c'],
+                    include_dirs=[],
+                    library_dirs=[],
+                    libraries=['asound']),
 	],
         packages=['pyalsa'],
         scripts=[]
@@ -52,7 +57,7 @@ setup(
 
 uname = os.uname()
 a = 'build/lib.%s-%s-%s' % (uname[0].lower(), uname[4], sys.version[:3])
-for f in ['alsacard.so', 'alsacontrol.so', 'alsahcontrol.so', 'alsamixer.so']:
+for f in ['alsacard.so', 'alsacontrol.so', 'alsahcontrol.so', 'alsamixer.so', 'alsaseq.so']:
         if not os.path.exists('pyalsa/%s' % f):
                 a = '../build/lib.%s-%s-%s/pyalsa/%s' % (uname[0].lower(),
                         uname[4], sys.version[:3], f)
