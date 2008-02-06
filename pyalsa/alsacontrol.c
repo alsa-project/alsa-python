@@ -67,7 +67,7 @@ static inline PyObject *get_bool(int val)
 }
 
 PyDoc_STRVAR(cardinfo__doc__,
-"cardInfo() -- Return a dictionary with card specific information.");
+"card_info() -- Return a dictionary with card specific information.");
 
 static PyObject *
 pyalsacontrol_cardinfo(struct pyalsacontrol *self, PyObject *args)
@@ -122,7 +122,7 @@ devices(struct pyalsacontrol *self, PyObject *args,
 }
 
 PyDoc_STRVAR(hwdepdevices__doc__,
-"hwdepDevices() -- Return a tuple with available hwdep devices.");
+"hwdep_devices() -- Return a tuple with available hwdep devices.");
 
 static PyObject *
 pyalsacontrol_hwdepdevices(struct pyalsacontrol *self, PyObject *args)
@@ -131,7 +131,7 @@ pyalsacontrol_hwdepdevices(struct pyalsacontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(pcmdevices__doc__,
-"pcmDevices() -- Return a tuple with available PCM devices.");
+"pcm_devices() -- Return a tuple with available PCM devices.");
 
 static PyObject *
 pyalsacontrol_pcmdevices(struct pyalsacontrol *self, PyObject *args)
@@ -140,7 +140,7 @@ pyalsacontrol_pcmdevices(struct pyalsacontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(rawmididevices__doc__,
-"rawmidiDevices() -- Return a tuple with available RawMidi devices.");
+"rawmidi_devices() -- Return a tuple with available RawMidi devices.");
 
 static PyObject *
 pyalsacontrol_rawmididevices(struct pyalsacontrol *self, PyObject *args)
@@ -191,10 +191,10 @@ static PyGetSetDef pyalsacontrol_getseters[] = {
 
 static PyMethodDef pyalsacontrol_methods[] = {
 
-	{"cardInfo",	(PyCFunction)pyalsacontrol_cardinfo,	METH_NOARGS,	cardinfo__doc__},
-	{"hwdepDevices",(PyCFunction)pyalsacontrol_hwdepdevices,	METH_NOARGS,	hwdepdevices__doc__},
-	{"pcmDevices",	(PyCFunction)pyalsacontrol_pcmdevices,	METH_NOARGS,	pcmdevices__doc__},
-	{"rawmidiDevices",(PyCFunction)pyalsacontrol_rawmididevices,	METH_NOARGS,	rawmididevices__doc__},
+	{"card_info",	(PyCFunction)pyalsacontrol_cardinfo,	METH_NOARGS,	cardinfo__doc__},
+	{"hwdep_devices",(PyCFunction)pyalsacontrol_hwdepdevices,	METH_NOARGS,	hwdepdevices__doc__},
+	{"pcm_devices",	(PyCFunction)pyalsacontrol_pcmdevices,	METH_NOARGS,	pcmdevices__doc__},
+	{"rawmidi_devices",(PyCFunction)pyalsacontrol_rawmididevices,	METH_NOARGS,	rawmididevices__doc__},
 	{NULL}
 };
 
@@ -256,16 +256,16 @@ initalsacontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space1("Card", CARD);
-	add_space1("HwDep", HWDEP);
-	add_space1("Mixer", MIXER);
+	add_space1("CARD", CARD);
+	add_space1("HWDEP", HWDEP);
+	add_space1("MIXER", MIXER);
 	add_space1("PCM", PCM);
-	add_space1("RawMidi", RAWMIDI);
-	add_space1("Timer", TIMER);
-	add_space1("Sequencer", SEQUENCER);
-	add_space1("Last", LAST);
+	add_space1("RAWMIDI", RAWMIDI);
+	add_space1("TIMER", TIMER);
+	add_space1("SEQUENCER", SEQUENCER);
+	add_space1("LAST", LAST);
 
-	PyDict_SetItemString(d, "InterfaceId", d1);
+	PyDict_SetItemString(d, "interface_id", d1);
 	Py_DECREF(d1);
 
 	/* ---- */
@@ -278,7 +278,7 @@ initalsacontrol(void)
 		Py_DECREF(o);
 	}
 
-	PyDict_SetItemString(d, "InterfaceName", l1);
+	PyDict_SetItemString(d, "interface_name", l1);
 	Py_DECREF(l1);
 
 	/* ---- */
@@ -290,11 +290,11 @@ initalsacontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space5("NonBlock", NONBLOCK);
-	add_space5("Async", ASYNC);
-	add_space5("ReadOnly", READONLY);
+	add_space5("NONBLOCK", NONBLOCK);
+	add_space5("ASYNC", ASYNC);
+	add_space5("READONLY", READONLY);
 
-	PyDict_SetItemString(d, "OpenMode", d1);
+	PyDict_SetItemString(d, "open_mode", d1);
 	Py_DECREF(d1);
 
 	/* ---- */

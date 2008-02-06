@@ -132,7 +132,7 @@ pyalsamixer_free(struct pyalsamixer *self, PyObject *args)
 }
 
 PyDoc_STRVAR(handlevents__doc__,
-"handleEvents() -- Process waiting mixer events (and call appropriate callbacks).");
+"handle_events() -- Process waiting mixer events (and call appropriate callbacks).");
 
 static PyObject *
 pyalsamixer_handleevents(struct pyalsamixer *self, PyObject *args)
@@ -149,7 +149,7 @@ pyalsamixer_handleevents(struct pyalsamixer *self, PyObject *args)
 }
 
 PyDoc_STRVAR(registerpoll__doc__,
-"registerPoll(pollObj) -- Register poll file descriptors.");
+"register_poll(pollObj) -- Register poll file descriptors.");
 
 static PyObject *
 pyalsamixer_registerpoll(struct pyalsamixer *self, PyObject *args)
@@ -268,8 +268,8 @@ static PyMethodDef pyalsamixer_methods[] = {
 	{"load",	(PyCFunction)pyalsamixer_load,	METH_NOARGS,	load__doc__},
 	{"free",	(PyCFunction)pyalsamixer_free,	METH_NOARGS,	free__doc__},
 	{"list",	(PyCFunction)pyalsamixer_list,	METH_NOARGS,	list__doc__},
-	{"handleEvents",(PyCFunction)pyalsamixer_handleevents,	METH_NOARGS,	handlevents__doc__},
-	{"registerPoll",(PyCFunction)pyalsamixer_registerpoll,	METH_VARARGS,	registerpoll__doc__},
+	{"handle_events",(PyCFunction)pyalsamixer_handleevents,	METH_NOARGS,	handlevents__doc__},
+	{"register_poll",(PyCFunction)pyalsamixer_registerpoll,	METH_VARARGS,	registerpoll__doc__},
 	{NULL}
 };
 
@@ -334,7 +334,7 @@ pyalsamixerelement_getcapgroup(struct pyalsamixerelement *pyelem, void *priv)
 }
 
 PyDoc_STRVAR(ismono__doc__,
-"isMono([capture=False]]) -- Return if this control is mono.");
+"is_mono([capture=False]]) -- Return if this control is mono.");
 
 static PyObject *
 pyalsamixerelement_ismono(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -355,7 +355,7 @@ pyalsamixerelement_ismono(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(haschannel__doc__,
-"hasChannel([channel=ChannelId['MONO'], [capture=False]]) -- Return if channel exists.");
+"has_channel([channel=channel_id['MONO'], [capture=False]]) -- Return if channel exists.");
 
 static PyObject *
 pyalsamixerelement_haschannel(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -376,7 +376,7 @@ pyalsamixerelement_haschannel(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(hasvolume__doc__,
-"hasVolume([capture=False]]) -- Return if volume exists.\n"
+"has_volume([capture=False]]) -- Return if volume exists.\n"
 "Note: String 'Joined' is returned when volume is joined.");
 
 static PyObject *
@@ -405,7 +405,7 @@ pyalsamixerelement_hasvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(hasswitch__doc__,
-"hasSwitch([capture=False]) -- Return if switch exists."
+"has_switch([capture=False]) -- Return if switch exists."
 "Note: String 'Joined' is returned when switch is joined.");
 
 static PyObject *
@@ -434,7 +434,7 @@ pyalsamixerelement_hasswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getvolume__doc__,
-"getVolume([channel=ChannelId['MONO'], [capture=False]]) -- Get volume.");
+"get_volume([channel=ChannelId['MONO'], [capture=False]]) -- Get volume.");
 
 static PyObject *
 pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -457,7 +457,7 @@ pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getvolumetuple__doc__,
-"getVolumeTuple([capture=False]]) -- Get volume and store result to tuple.");
+"get_volume_tuple([capture=False]]) -- Get volume and store result to tuple.");
 
 static PyObject *
 pyalsamixerelement_getvolumetuple(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -531,7 +531,7 @@ pyalsamixerelement_getvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(getvolumearray__doc__,
-"getVolumeArray([capture=False]]) -- Get volume and store result to array.");
+"get_volume_array([capture=False]]) -- Get volume and store result to array.");
 
 static PyObject *
 pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -609,7 +609,7 @@ pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(setvolume__doc__,
-"setVolume(value, [channel=ChannelId['MONO'], [capture=False]]) -- Set volume.");
+"set_volume(value, [channel=ChannelId['MONO'], [capture=False]]) -- Set volume.");
 
 static PyObject *
 pyalsamixerelement_setvolume(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -629,10 +629,10 @@ pyalsamixerelement_setvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(setvolumetuple__doc__,
-"setVolumeTuple(value, [capture=False]]) -- Set volume level from tuple.");
+"set_volume_tuple(value, [capture=False]]) -- Set volume level from tuple.");
 
 PyDoc_STRVAR(setvolumearray__doc__,
-"setVolumeArray(value, [capture=False]]) -- Set volume level from array.");
+"set_volume_array(value, [capture=False]]) -- Set volume level from array.");
 
 static PyObject *
 pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -685,7 +685,7 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(setvolumeall__doc__,
-"setVolumeAll(value, [capture=False]]) -- Set volume for all channels.");
+"set_volume_all(value, [capture=False]]) -- Set volume for all channels.");
 
 static PyObject *
 pyalsamixerelement_setvolumeall(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -705,7 +705,7 @@ pyalsamixerelement_setvolumeall(struct pyalsamixerelement *pyelem, PyObject *arg
 }
 
 PyDoc_STRVAR(getrange__doc__,
-"getVolumeRange([capture=False]]) -- Get volume range in (min,max) tuple.");
+"get_volume_range([capture=False]]) -- Get volume range in (min,max) tuple.");
 
 static PyObject *
 pyalsamixerelement_getrange(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -731,7 +731,7 @@ pyalsamixerelement_getrange(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(setrange__doc__,
-"setVolumeRange(min, max, [capture=False]]) -- Set volume range limits.");
+"set_volume_range(min, max, [capture=False]]) -- Set volume range limits.");
 
 static PyObject *
 pyalsamixerelement_setrange(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -751,7 +751,7 @@ pyalsamixerelement_setrange(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getswitch__doc__,
-"getSwitch([channel=ChannelId['MONO'], [capture=False]]) -- Get switch state.");
+"get_switch([channel=ChannelId['MONO'], [capture=False]]) -- Get switch state.");
 
 static PyObject *
 pyalsamixerelement_getswitch(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -777,7 +777,7 @@ pyalsamixerelement_getswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(getswitchtuple__doc__,
-"getSwitchTuple([capture=False]]) -- Get switch state and store result to tuple.");
+"get_switch_tuple([capture=False]]) -- Get switch state and store result to tuple.");
 
 static PyObject *
 pyalsamixerelement_getswitchtuple(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -850,7 +850,7 @@ pyalsamixerelement_getswitchtuple(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(setswitch__doc__,
-"setSwitch(value, [channel=ChannelId['MONO'], [capture=False]]) -- Set switch state.");
+"set_switch(value, [channel=ChannelId['MONO'], [capture=False]]) -- Set switch state.");
 
 static PyObject *
 pyalsamixerelement_setswitch(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -869,7 +869,7 @@ pyalsamixerelement_setswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(setswitchtuple__doc__,
-"setSwitchTuple(value, [capture=False]]) -- Set switch state from tuple.");
+"set_switch_tuple(value, [capture=False]]) -- Set switch state from tuple.");
 
 static PyObject *
 pyalsamixerelement_setswitchtuple(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -898,7 +898,7 @@ pyalsamixerelement_setswitchtuple(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(setswitchall__doc__,
-"setSwitchAll(value, [capture=False]]) -- Set switch for all channels.");
+"set_switch_all(value, [capture=False]]) -- Set switch for all channels.");
 
 static PyObject *
 pyalsamixerelement_setswitchall(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -917,7 +917,7 @@ pyalsamixerelement_setswitchall(struct pyalsamixerelement *pyelem, PyObject *arg
 }
 
 PyDoc_STRVAR(getvolumedb__doc__,
-"getVolume_dB([channel=ChannelId['MONO'], [capture=False]]) -- Get volume in dB.");
+"get_volume_dB([channel=ChannelId['MONO'], [capture=False]]) -- Get volume in dB.");
 
 static PyObject *
 pyalsamixerelement_getvolumedb(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -940,7 +940,7 @@ pyalsamixerelement_getvolumedb(struct pyalsamixerelement *pyelem, PyObject *args
 }
 
 PyDoc_STRVAR(setvolumedb__doc__,
-"setVolume_dB(value, [channel=ChannelId['MONO'], [capture=False], [dir=0]]) -- Set volume in dB.");
+"set_volume_dB(value, [channel=ChannelId['MONO'], [capture=False], [dir=0]]) -- Set volume in dB.");
 
 static PyObject *
 pyalsamixerelement_setvolumedb(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -960,7 +960,7 @@ pyalsamixerelement_setvolumedb(struct pyalsamixerelement *pyelem, PyObject *args
 }
 
 PyDoc_STRVAR(setvolumealldb__doc__,
-"setVolumeAll_dB(value, [[capture=False], [dir=0]]) -- Set volume for all channels in dB.");
+"set_volume_all_dB(value, [[capture=False], [dir=0]]) -- Set volume for all channels in dB.");
 
 static PyObject *
 pyalsamixerelement_setvolumealldb(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -980,7 +980,7 @@ pyalsamixerelement_setvolumealldb(struct pyalsamixerelement *pyelem, PyObject *a
 }
 
 PyDoc_STRVAR(getrangedb__doc__,
-"getVolumeRange_dB([capture=False]]) -- Get volume range in dB in (min,max) tuple.");
+"get_volume_range_dB([capture=False]]) -- Get volume range in dB in (min,max) tuple.");
 
 static PyObject *
 pyalsamixerelement_getrangedb(struct pyalsamixerelement *pyelem, PyObject *args)
@@ -1006,7 +1006,7 @@ pyalsamixerelement_getrangedb(struct pyalsamixerelement *pyelem, PyObject *args)
 }
 
 PyDoc_STRVAR(setcallback__doc__,
-"setCallback(callObj) -- Set callback object.\n"
+"set_callback(callObj) -- Set callback object.\n"
 "Note: callObj might have callObj.callback attribute.\n");
 
 static PyObject *
@@ -1094,46 +1094,46 @@ static PyGetSetDef pyalsamixerelement_getseters[] = {
 	{"name",	(getter)pyalsamixerelement_getname,	NULL,	"mixer element name",		NULL},
 	{"index",	(getter)pyalsamixerelement_getindex,	NULL,	"mixer element index",		NULL},
 
-	{"isActive",	(getter)pyalsamixerelement_bool,	NULL,	"element is in active status",	snd_mixer_selem_is_active},
-	{"isEnumerated",(getter)pyalsamixerelement_bool,	NULL,	"element is enumerated type",	snd_mixer_selem_is_enumerated},
-	{"hasCommonVolume",(getter)pyalsamixerelement_bool,	NULL,	"element has common volume control",	snd_mixer_selem_has_common_volume},
-	{"hasCommonSwitch",(getter)pyalsamixerelement_bool,	NULL,	"element has common switch control",	snd_mixer_selem_has_common_switch},
-	{"hasCaptureSwitchExclusive", (getter)pyalsamixerelement_bool, NULL, "element has exclusive capture switch",	snd_mixer_selem_has_capture_switch_exclusive},
+	{"is_active",	(getter)pyalsamixerelement_bool,	NULL,	"element is in active status",	snd_mixer_selem_is_active},
+	{"is_enumerated",(getter)pyalsamixerelement_bool,	NULL,	"element is enumerated type",	snd_mixer_selem_is_enumerated},
+	{"has_common_volume",(getter)pyalsamixerelement_bool,	NULL,	"element has common volume control",	snd_mixer_selem_has_common_volume},
+	{"has_common_switch",(getter)pyalsamixerelement_bool,	NULL,	"element has common switch control",	snd_mixer_selem_has_common_switch},
+	{"has_capture_switch_exclusive", (getter)pyalsamixerelement_bool, NULL, "element has exclusive capture switch",	snd_mixer_selem_has_capture_switch_exclusive},
 
-	{"getCaptureGroup",(getter)pyalsamixerelement_getcapgroup,	NULL,	"element get capture group",	NULL},
+	{"get_capture_group",(getter)pyalsamixerelement_getcapgroup,	NULL,	"element get capture group",	NULL},
 	
 	{NULL}
 };
 
 static PyMethodDef pyalsamixerelement_methods[] = {
 
-	{"getVolume",	(PyCFunction)pyalsamixerelement_getvolume,	METH_VARARGS,	getvolume__doc__},
-	{"getVolumeTuple", (PyCFunction)pyalsamixerelement_getvolumetuple, METH_VARARGS,getvolumetuple__doc__},
-	{"getVolumeArray", (PyCFunction)pyalsamixerelement_getvolumearray, METH_VARARGS,getvolumearray__doc__},
-	{"setVolume",	(PyCFunction)pyalsamixerelement_setvolume,	METH_VARARGS,	setvolume__doc__},
-	{"setVolumeTuple", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumetuple__doc__},
-	{"setVolumeArray", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumearray__doc__},
-	{"setVolumeAll",(PyCFunction)pyalsamixerelement_setvolumeall,	METH_VARARGS,	setvolumeall__doc__},
-	{"getVolumeRange", (PyCFunction)pyalsamixerelement_getrange,	METH_VARARGS,	getrange__doc__},
-	{"setVolumeRange", (PyCFunction)pyalsamixerelement_setrange,	METH_VARARGS,	setrange__doc__},
+	{"get_volume",	(PyCFunction)pyalsamixerelement_getvolume,	METH_VARARGS,	getvolume__doc__},
+	{"get_volume_tuple", (PyCFunction)pyalsamixerelement_getvolumetuple, METH_VARARGS,getvolumetuple__doc__},
+	{"get_volume_array", (PyCFunction)pyalsamixerelement_getvolumearray, METH_VARARGS,getvolumearray__doc__},
+	{"set_volume",	(PyCFunction)pyalsamixerelement_setvolume,	METH_VARARGS,	setvolume__doc__},
+	{"set_volume_tuple", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumetuple__doc__},
+	{"set_volume_array", (PyCFunction)pyalsamixerelement_setvolumetuple, METH_VARARGS,setvolumearray__doc__},
+	{"set_volume_all",(PyCFunction)pyalsamixerelement_setvolumeall,	METH_VARARGS,	setvolumeall__doc__},
+	{"get_volume_range", (PyCFunction)pyalsamixerelement_getrange,	METH_VARARGS,	getrange__doc__},
+	{"set_volume_range", (PyCFunction)pyalsamixerelement_setrange,	METH_VARARGS,	setrange__doc__},
 
-	{"getVolume_dB",(PyCFunction)pyalsamixerelement_getvolumedb,	METH_VARARGS,	getvolumedb__doc__},
-	{"setVolume_dB",(PyCFunction)pyalsamixerelement_setvolumedb,	METH_VARARGS,	setvolumedb__doc__},
-	{"setVolumeAll_dB",(PyCFunction)pyalsamixerelement_setvolumealldb,METH_VARARGS,	setvolumealldb__doc__},
-	{"getVolumeRange_dB", (PyCFunction)pyalsamixerelement_getrangedb,	METH_VARARGS,	getrangedb__doc__},
+	{"get_volume_dB",(PyCFunction)pyalsamixerelement_getvolumedb,	METH_VARARGS,	getvolumedb__doc__},
+	{"set_volume_dB",(PyCFunction)pyalsamixerelement_setvolumedb,	METH_VARARGS,	setvolumedb__doc__},
+	{"set_volume_all_dB",(PyCFunction)pyalsamixerelement_setvolumealldb,METH_VARARGS,	setvolumealldb__doc__},
+	{"get_volume_range_dB", (PyCFunction)pyalsamixerelement_getrangedb,	METH_VARARGS,	getrangedb__doc__},
 
-	{"getSwitch",	(PyCFunction)pyalsamixerelement_getswitch,	METH_VARARGS,	getswitch__doc__},
-	{"getSwitchTuple", (PyCFunction)pyalsamixerelement_getswitchtuple, METH_VARARGS,getswitchtuple__doc__},
-	{"setSwitch",	(PyCFunction)pyalsamixerelement_setswitch,	METH_VARARGS,	setswitch__doc__},
-	{"setSwitchTuple", (PyCFunction)pyalsamixerelement_setswitchtuple, METH_VARARGS,setswitchtuple__doc__},
-	{"setSwitchAll",(PyCFunction)pyalsamixerelement_setswitchall,	METH_VARARGS,	setswitchall__doc__},
+	{"get_switch",	(PyCFunction)pyalsamixerelement_getswitch,	METH_VARARGS,	getswitch__doc__},
+	{"get_switch_tuple", (PyCFunction)pyalsamixerelement_getswitchtuple, METH_VARARGS,getswitchtuple__doc__},
+	{"set_switch",	(PyCFunction)pyalsamixerelement_setswitch,	METH_VARARGS,	setswitch__doc__},
+	{"set_switch_tuple", (PyCFunction)pyalsamixerelement_setswitchtuple, METH_VARARGS,setswitchtuple__doc__},
+	{"set_switch_all",(PyCFunction)pyalsamixerelement_setswitchall,	METH_VARARGS,	setswitchall__doc__},
 
-	{"isMono",	(PyCFunction)pyalsamixerelement_ismono,		METH_VARARGS,	ismono__doc__},
-	{"hasChannel",	(PyCFunction)pyalsamixerelement_haschannel,	METH_VARARGS,	haschannel__doc__},
-	{"hasVolume",	(PyCFunction)pyalsamixerelement_hasvolume,	METH_VARARGS,	hasvolume__doc__},
-	{"hasSwitch",	(PyCFunction)pyalsamixerelement_hasswitch,	METH_VARARGS,	hasswitch__doc__},
+	{"is_mono",	(PyCFunction)pyalsamixerelement_ismono,		METH_VARARGS,	ismono__doc__},
+	{"has_channel",	(PyCFunction)pyalsamixerelement_haschannel,	METH_VARARGS,	haschannel__doc__},
+	{"has_volume",	(PyCFunction)pyalsamixerelement_hasvolume,	METH_VARARGS,	hasvolume__doc__},
+	{"has_switch",	(PyCFunction)pyalsamixerelement_hasswitch,	METH_VARARGS,	hasswitch__doc__},
 
-	{"setCallback",	(PyCFunction)pyalsamixerelement_setcallback,	METH_VARARGS,	setcallback__doc__},
+	{"set_callback",(PyCFunction)pyalsamixerelement_setcallback,	METH_VARARGS,	setcallback__doc__},
 
 	{NULL}
 };
@@ -1201,20 +1201,20 @@ initalsamixer(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space1("Unknown", UNKNOWN);
-	add_space1("FrontLeft", FRONT_LEFT);
-	add_space1("FrontRight", FRONT_RIGHT);
-	add_space1("RearLeft", REAR_LEFT);
-	add_space1("RearRight", REAR_RIGHT);
-	add_space1("FrontCenter", FRONT_CENTER);
-	add_space1("Woofer", WOOFER);
-	add_space1("SideLeft", SIDE_LEFT);
-	add_space1("SideRight", SIDE_RIGHT);
-	add_space1("RearCenter", REAR_CENTER);
-	add_space1("Last", LAST);
-	add_space1("Mono", MONO);
+	add_space1("UNKNOWN", UNKNOWN);
+	add_space1("FRONT_LEFT", FRONT_LEFT);
+	add_space1("FRONT_RIGHT", FRONT_RIGHT);
+	add_space1("REAR_LEFT", REAR_LEFT);
+	add_space1("REAR_RIGHT", REAR_RIGHT);
+	add_space1("FRONT_CENTER", FRONT_CENTER);
+	add_space1("WOOFER", WOOFER);
+	add_space1("SIDE_LEFT", SIDE_LEFT);
+	add_space1("SIDE_RIGHT", SIDE_RIGHT);
+	add_space1("REAR_CENTER", REAR_CENTER);
+	add_space1("LAST", LAST);
+	add_space1("MONO", MONO);
 
-	PyDict_SetItemString(d, "ChannelId", d1);
+	PyDict_SetItemString(d, "channel_id", d1);
 	Py_DECREF(d1);
 
 	/* ---- */
@@ -1227,7 +1227,7 @@ initalsamixer(void)
 		Py_DECREF(o);
 	}
 
-	PyDict_SetItemString(d, "ChannelName", l1);
+	PyDict_SetItemString(d, "channel_name", l1);
 	Py_DECREF(l1);
 
 	/* ---- */
@@ -1239,10 +1239,10 @@ initalsamixer(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space2("None", NONE);
-	add_space2("Basic", BASIC);
+	add_space2("NONE", NONE);
+	add_space2("BASIC", BASIC);
 
-	PyDict_SetItemString(d, "RegoptAbstract", d1);
+	PyDict_SetItemString(d, "regopt_abstract", d1);
 	Py_DECREF(d1);
 	
 	/* ---- */
@@ -1254,16 +1254,16 @@ initalsamixer(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space3("Value", VALUE);
-	add_space3("Info", INFO);
-	add_space3("Add", ADD);
+	add_space3("VALUE", VALUE);
+	add_space3("INFO", INFO);
+	add_space3("ADD", ADD);
 	add_space3("TLV", TLV);
 
-	PyDict_SetItemString(d, "EventMask", d1);
+	PyDict_SetItemString(d, "event_mask", d1);
 	Py_DECREF(d1);
 
 	o = PyInt_FromLong(SND_CTL_EVENT_MASK_REMOVE);
-	PyDict_SetItemString(d, "EventMaskRemove", o);
+	PyDict_SetItemString(d, "event_mask_remove", o);
 	Py_DECREF(o);
 	
 	/* ---- */

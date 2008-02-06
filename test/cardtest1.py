@@ -6,11 +6,11 @@ sys.path.insert(0, '../pyalsa')
 del sys
 import alsacard
 
-print 'asoundlibVersion:', alsacard.asoundlibVersion()
-print 'cardLoad:', alsacard.cardLoad(0)
-print 'cardList:', alsacard.cardList()
+print 'asoundlibVersion:', alsacard.asoundlib_version()
+print 'cardLoad:', alsacard.card_load(0)
+print 'cardList:', alsacard.card_list()
 print 'deviceNameHint for all cards:'
-print alsacard.deviceNameHint(-1, "pcm")
-for card in alsacard.cardList():
+print alsacard.device_name_hint(-1, "pcm")
+for card in alsacard.card_list():
 	print 'deviceNameHint for card #%i:' % card
-	print alsacard.deviceNameHint(card, "pcm")
+	print alsacard.device_name_hint(card, "pcm")

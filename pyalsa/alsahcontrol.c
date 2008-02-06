@@ -143,7 +143,7 @@ pyalsahcontrol_getChctl(struct pyalsahcontrol *self, void *priv)
 }
 
 PyDoc_STRVAR(handlevents__doc__,
-"handleEvents() -- Process waiting hcontrol events (and call appropriate callbacks).");
+"handle_events() -- Process waiting hcontrol events (and call appropriate callbacks).");
 
 static PyObject *
 pyalsahcontrol_handleevents(struct pyalsahcontrol *self, PyObject *args)
@@ -160,7 +160,7 @@ pyalsahcontrol_handleevents(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(registerpoll__doc__,
-"registerPoll(pollObj) -- Register poll file descriptors.");
+"register_poll(pollObj) -- Register poll file descriptors.");
 
 static PyObject *
 pyalsahcontrol_registerpoll(struct pyalsahcontrol *self, PyObject *args)
@@ -233,10 +233,10 @@ pyalsahcontrol_list(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(elementnew__doc__,
-"elementNew(ElementType['Integer'], id, count, min, max, step)\n"
-"elementNew(ElementType['Integer64'], id, count, min64, max64, step64)\n"
-"elementNew(ElementType['Boolean'], id, count)\n"
-"elementNew(ElementType['IEC958'], id)\n"
+"element_new(element_type['INTEGER'], id, count, min, max, step)\n"
+"element_new(element_type['INTEGER64'], id, count, min64, max64, step64)\n"
+"element_new(element_type['BOOLEAN'], id, count)\n"
+"element_new(element_type['IEC958'], id)\n"
 "  -- Create a new hcontrol element.\n"
 "  -- The id argument is tuple (interface, device, subdevice, name, index).\n");
 
@@ -319,8 +319,8 @@ pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(elementremove__doc__,
-"elementRemove(id)\n"
-"elementRemove(interface, device, subdevice, name, index)\n"
+"element_remove(id)\n"
+"element_remove(interface, device, subdevice, name, index)\n"
 "  -- Remove element.\n");
 
 static PyObject *
@@ -330,8 +330,8 @@ pyalsahcontrol_elementremove(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(elementlock__doc__,
-"elementLock(id)\n"
-"elementLock(interface, device, subdevice, name, index)\n"
+"element_lock(id)\n"
+"element_lock(interface, device, subdevice, name, index)\n"
 " -- Lock element.\n");
 
 static PyObject *
@@ -341,8 +341,8 @@ pyalsahcontrol_elementlock(struct pyalsahcontrol *self, PyObject *args)
 }
 
 PyDoc_STRVAR(elementunlock__doc__,
-"elementUnlock(id)\n"
-"elementUnlock(interface, device, subdevice, name, index)\n"
+"element_unlock(id)\n"
+"element_unlock(interface, device, subdevice, name, index)\n"
 " -- Unlock element.\n");
 
 static PyObject *
@@ -409,12 +409,12 @@ static PyGetSetDef pyalsahcontrol_getseters[] = {
 static PyMethodDef pyalsahcontrol_methods[] = {
 
 	{"list",	(PyCFunction)pyalsahcontrol_list,	METH_NOARGS,	list__doc__},
-	{"elementNew",	(PyCFunction)pyalsahcontrol_elementnew,	METH_VARARGS,	elementnew__doc__},
-	{"elementRemove",(PyCFunction)pyalsahcontrol_elementremove,	METH_VARARGS,	elementremove__doc__},
-	{"elementLock",(PyCFunction)pyalsahcontrol_elementlock,	METH_VARARGS,	elementlock__doc__},
-	{"elementUnlock",(PyCFunction)pyalsahcontrol_elementunlock,	METH_VARARGS,	elementunlock__doc__},
-	{"handleEvents",(PyCFunction)pyalsahcontrol_handleevents,	METH_NOARGS,	handlevents__doc__},
-	{"registerPoll",(PyCFunction)pyalsahcontrol_registerpoll,	METH_VARARGS|METH_KEYWORDS,	registerpoll__doc__},
+	{"element_new",	(PyCFunction)pyalsahcontrol_elementnew,	METH_VARARGS,	elementnew__doc__},
+	{"element_remove",(PyCFunction)pyalsahcontrol_elementremove,	METH_VARARGS,	elementremove__doc__},
+	{"element_lock",(PyCFunction)pyalsahcontrol_elementlock,	METH_VARARGS,	elementlock__doc__},
+	{"element_unlock",(PyCFunction)pyalsahcontrol_elementunlock,	METH_VARARGS,	elementunlock__doc__},
+	{"handle_events",(PyCFunction)pyalsahcontrol_handleevents,	METH_NOARGS,	handlevents__doc__},
+	{"register_poll",(PyCFunction)pyalsahcontrol_registerpoll,	METH_VARARGS|METH_KEYWORDS,	registerpoll__doc__},
 	{NULL}
 };
 
@@ -503,7 +503,7 @@ pyalsahcontrolelement_unlock(struct pyalsahcontrolelement *pyhelem, PyObject *ar
 }
 
 PyDoc_STRVAR(setcallback__doc__,
-"setCallback(callObj) -- Set callback object.\n"
+"set_callback(callObj) -- Set callback object.\n"
 "Note: callObj might have callObj.callback attribute.\n");
 
 static PyObject *
@@ -631,7 +631,7 @@ static PyMethodDef pyalsahcontrolelement_methods[] = {
 	{"lock",	(PyCFunction)pyalsahcontrolelement_lock,	METH_NOARGS,	elock__doc__},
 	{"unlock",	(PyCFunction)pyalsahcontrolelement_unlock,	METH_NOARGS,	eunlock__doc__},
 
-	{"setCallback",	(PyCFunction)pyalsahcontrolelement_setcallback,	METH_VARARGS,	setcallback__doc__},
+	{"set_callback",(PyCFunction)pyalsahcontrolelement_setcallback,	METH_VARARGS,	setcallback__doc__},
 
 	{NULL}
 };
@@ -862,16 +862,16 @@ static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 
 	{"type",	(getter)pyalsahcontrolinfo_uint,	NULL,	"hcontrol element index",	snd_ctl_elem_info_get_type},
 
-	{"isReadable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is readable",	snd_ctl_elem_info_is_readable},
-	{"isWritable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is writable",snd_ctl_elem_info_is_writable},
-	{"isVolatile",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is volatile",snd_ctl_elem_info_is_volatile},
-	{"isInactive",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is inactive",snd_ctl_elem_info_is_inactive},
-	{"isLocked",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is locked",snd_ctl_elem_info_is_locked},
-	{"isTlvReadable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV readable",snd_ctl_elem_info_is_tlv_readable},
-	{"isTlvWritable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV writable",snd_ctl_elem_info_is_tlv_writable},
-	{"isTlvCommandable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV commandable",snd_ctl_elem_info_is_tlv_commandable},
-	{"isOwner",	(getter)pyalsahcontrolinfo_bool,	NULL,	"this process is owner of this hcontrol element",snd_ctl_elem_info_is_owner},
-	{"isUser",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is user element",snd_ctl_elem_info_is_user},
+	{"is_readable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is readable",	snd_ctl_elem_info_is_readable},
+	{"is_writable",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is writable",snd_ctl_elem_info_is_writable},
+	{"is_volatile",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is volatile",snd_ctl_elem_info_is_volatile},
+	{"is_inactive",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is inactive",snd_ctl_elem_info_is_inactive},
+	{"is_locked",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is locked",snd_ctl_elem_info_is_locked},
+	{"is_tlv_readable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV readable",snd_ctl_elem_info_is_tlv_readable},
+	{"is_tlv_Writable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV writable",snd_ctl_elem_info_is_tlv_writable},
+	{"is_tlv_Commandable",(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is TLV commandable",snd_ctl_elem_info_is_tlv_commandable},
+	{"is_owner",	(getter)pyalsahcontrolinfo_bool,	NULL,	"this process is owner of this hcontrol element",snd_ctl_elem_info_is_owner},
+	{"is_user",	(getter)pyalsahcontrolinfo_bool,	NULL,	"hcontrol element is user element",snd_ctl_elem_info_is_user},
 
 	{"owner",	(getter)pyalsahcontrolinfo_getowner,	NULL,	"get owner pid for this hcontrol element",	NULL},
 	{"count",	(getter)pyalsahcontrolinfo_uint,	NULL,	"get count of values",			snd_ctl_elem_info_get_count},
@@ -884,7 +884,7 @@ static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
 	{"items",	(getter)pyalsahcontrolinfo_getitems,	NULL,	"get count of enumerated items",	NULL},
 
 	{"dimensions",	(getter)pyalsahcontrolinfo_dimensions,	NULL,	"get hcontrol element dimensions (in tuple)",	NULL},
-	{"itemNames",	(getter)pyalsahcontrolinfo_itemnames,	NULL,	"get enumerated item names (in tuple)",		NULL},
+	{"item_names",	(getter)pyalsahcontrolinfo_itemnames,	NULL,	"get enumerated item names (in tuple)",		NULL},
 	
 	{NULL}
 };
@@ -956,10 +956,10 @@ pyalsahcontrolvalue_id(struct pyalsahcontrolvalue *pyvalue, void *priv)
 }
 
 PyDoc_STRVAR(gettuple__doc__,
-"getTuple(type, count) -- Get hcontrol element values in tuple.");
+"get_tuple(type, count) -- Get hcontrol element values in tuple.");
 
 PyDoc_STRVAR(getarray__doc__,
-"getArray(type, count) -- Get hcontrol element values in array.");
+"get_array(type, count) -- Get hcontrol element values in array.");
 
 static PyObject *
 pyalsahcontrolvalue_get1(struct pyalsahcontrolvalue *self, PyObject *args, int list)
@@ -1074,10 +1074,10 @@ pyalsahcontrolvalue_getarray(struct pyalsahcontrolvalue *self, PyObject *args)
 
 
 PyDoc_STRVAR(settuple__doc__,
-"setTuple(type, val) -- Set hcontrol element values from tuple.");
+"set_tuple(type, val) -- Set hcontrol element values from tuple.");
 
 PyDoc_STRVAR(setarray__doc__,
-"setArray(type, val) -- Set hcontrol element values from array.");
+"set_array(type, val) -- Set hcontrol element values from array.");
 
 static PyObject *
 pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
@@ -1292,10 +1292,10 @@ static PyGetSetDef pyalsahcontrolvalue_getseters[] = {
 
 static PyMethodDef pyalsahcontrolvalue_methods[] = {
 
-	{"getTuple",	(PyCFunction)pyalsahcontrolvalue_gettuple,	METH_VARARGS,	gettuple__doc__},
-	{"getArray",	(PyCFunction)pyalsahcontrolvalue_getarray,	METH_VARARGS,	getarray__doc__},
-	{"setTuple",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	settuple__doc__},
-	{"setArray",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	setarray__doc__},
+	{"get_tuple",	(PyCFunction)pyalsahcontrolvalue_gettuple,	METH_VARARGS,	gettuple__doc__},
+	{"get_array",	(PyCFunction)pyalsahcontrolvalue_getarray,	METH_VARARGS,	getarray__doc__},
+	{"set_tuple",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	settuple__doc__},
+	{"set_array",	(PyCFunction)pyalsahcontrolvalue_settuple,	METH_VARARGS,	setarray__doc__},
 
 	{"read",	(PyCFunction)pyalsahcontrolvalue_read,		METH_NOARGS,	read__doc__},
 	{"write",	(PyCFunction)pyalsahcontrolvalue_write,		METH_NOARGS,	write__doc__},
@@ -1376,16 +1376,16 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space1("Card", CARD);
-	add_space1("HwDep", HWDEP);
-	add_space1("Mixer", MIXER);
+	add_space1("CARD", CARD);
+	add_space1("HWDEP", HWDEP);
+	add_space1("MIXER", MIXER);
 	add_space1("PCM", PCM);
-	add_space1("RawMidi", RAWMIDI);
-	add_space1("Timer", TIMER);
-	add_space1("Sequencer", SEQUENCER);
-	add_space1("Last", LAST);
+	add_space1("RAWMIDI", RAWMIDI);
+	add_space1("TIMER", TIMER);
+	add_space1("SEQUENCER", SEQUENCER);
+	add_space1("LAST", LAST);
 
-	PyDict_SetItemString(d, "InterfaceId", d1);
+	PyDict_SetItemString(d, "interface_id", d1);
 	Py_DECREF(d1);
 
 	/* ---- */
@@ -1398,7 +1398,7 @@ initalsahcontrol(void)
 		Py_DECREF(o);
 	}
 
-	PyDict_SetItemString(d, "InterfaceName", l1);
+	PyDict_SetItemString(d, "interface_name", l1);
 	Py_DECREF(l1);
 
 	/* ---- */
@@ -1410,16 +1410,16 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space2("None", NONE);
-	add_space2("Boolean", BOOLEAN);
-	add_space2("Integer", INTEGER);
-	add_space2("Enumerated", ENUMERATED);
-	add_space2("Bytes", BYTES);
+	add_space2("NONE", NONE);
+	add_space2("BOOLEAN", BOOLEAN);
+	add_space2("INTEGER", INTEGER);
+	add_space2("ENUMERATED", ENUMERATED);
+	add_space2("BYTES", BYTES);
 	add_space2("IEC958", IEC958);
-	add_space2("Integer64", INTEGER64);
-	add_space2("Last", LAST);
+	add_space2("INTEGER64", INTEGER64);
+	add_space2("LAST", LAST);
 
-	PyDict_SetItemString(d, "ElementType", d1);
+	PyDict_SetItemString(d, "element_type", d1);
 	Py_DECREF(d1);
 	
 	/* ---- */
@@ -1432,7 +1432,7 @@ initalsahcontrol(void)
 		Py_DECREF(o);
 	}
 
-	PyDict_SetItemString(d, "ElementTypeName", l1);
+	PyDict_SetItemString(d, "element_type_name", l1);
 	Py_DECREF(l1);
 
 	/* ---- */
@@ -1444,10 +1444,10 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space3("Element", ELEM);
-	add_space3("Last", LAST);
+	add_space3("ELEMENT", ELEM);
+	add_space3("LAST", LAST);
 
-	PyDict_SetItemString(d, "EventClass", d1);
+	PyDict_SetItemString(d, "event_class", d1);
 	Py_DECREF(d1);
 
 	/* ---- */
@@ -1459,16 +1459,16 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space4("Value", VALUE);
-	add_space4("Info", INFO);
-	add_space4("Add", ADD);
+	add_space4("VALUS", VALUE);
+	add_space4("INFO", INFO);
+	add_space4("ADD", ADD);
 	add_space4("TLV", TLV);
 
-	PyDict_SetItemString(d, "EventMask", d1);
+	PyDict_SetItemString(d, "event_mask", d1);
 	Py_DECREF(d1);
 
 	o = PyInt_FromLong(SND_CTL_EVENT_MASK_REMOVE);
-	PyDict_SetItemString(d, "EventMaskRemove", o);
+	PyDict_SetItemString(d, "event_mask_remove", o);
 	Py_DECREF(o);
 
 	/* ---- */
@@ -1480,11 +1480,11 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space5("NonBlock", NONBLOCK);
-	add_space5("Async", ASYNC);
-	add_space5("ReadOnly", READONLY);
+	add_space5("NONBLOCK", NONBLOCK);
+	add_space5("ASYNC", ASYNC);
+	add_space5("READONLY", READONLY);
 
-	PyDict_SetItemString(d, "OpenMode", d1);
+	PyDict_SetItemString(d, "open_mode", d1);
 	Py_DECREF(d1);
 
 	/* ---- */

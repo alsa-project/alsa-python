@@ -8,13 +8,13 @@ import alsahcontrol
 
 def info(element):
 	info = alsahcontrol.Info(element)
-	enumerated = alsahcontrol.ElementType['Enumerated']
-	integer = alsahcontrol.ElementType['Integer']
-	integer64 = alsahcontrol.ElementType['Integer64']
+	enumerated = alsahcontrol.element_type['ENUMERATED']
+	integer = alsahcontrol.element_type['INTEGER']
+	integer64 = alsahcontrol.element_type['INTEGER64']
 	for a in dir(info):
 		if a.startswith('__'):
 			continue
-		if a in ['items', 'itemNames'] and info.type != enumerated:
+		if a in ['items', 'item_names'] and info.type != enumerated:
 			continue
 		if a in ['min', 'max', 'step'] and info.type != integer:
 			continue
@@ -22,7 +22,7 @@ def info(element):
 			continue
 		extra = ''
 		if a == 'type':
-			extra = ' (%s)' % alsahcontrol.ElementTypeName[info.type]
+			extra = ' (%s)' % alsahcontrol.element_type_name[info.type]
 		print '  %s: %s%s' % (a, getattr(info, a), extra)
 
 def value(element):
@@ -32,28 +32,28 @@ def value(element):
 		if a.startswith('__'):
 			continue
 		print '  %s: %s' % (a, getattr(value, a))
-	values = value.getTuple(info.type, info.count)
+	values = value.get_tuple(info.type, info.count)
 	print '  Values: ', values
-	value.setTuple(info.type, values)
+	value.set_tuple(info.type, values)
 	value.read()
-	if info.isWritable:
+	if info.is_writable:
 		value.write()
 
-print 'InterfaceId:'
-print '  ', alsahcontrol.InterfaceId
-print 'InterfaceName:'
-print '  ', alsahcontrol.InterfaceName
-print 'ElementType:'
-print '  ', alsahcontrol.ElementType
-print 'ElementTypeName:'
-print '  ', alsahcontrol.ElementTypeName
-print 'EventClass:'
-print '  ', alsahcontrol.EventClass
-print 'EventMask:'
-print '  ', alsahcontrol.EventMask
-print 'EventMaskRemove:', alsahcontrol.EventMaskRemove
-print '  ', alsahcontrol.OpenMode
-print 'EventMaskRemove:', alsahcontrol.OpenMode
+print 'interface_id:'
+print '  ', alsahcontrol.interface_id
+print 'interface_name:'
+print '  ', alsahcontrol.interface_name
+print 'element_type:'
+print '  ', alsahcontrol.element_type
+print 'element_type_name:'
+print '  ', alsahcontrol.element_type_name
+print 'event_class:'
+print '  ', alsahcontrol.event_class
+print 'event_mask:'
+print '  ', alsahcontrol.event_mask
+print 'event_mask_remove:', alsahcontrol.event_mask_remove
+print '  ', alsahcontrol.open_mode
+print 'event_mask_remove:', alsahcontrol.open_mode
 
 hctl = alsahcontrol.HControl()
 print 'Count: ', hctl.count

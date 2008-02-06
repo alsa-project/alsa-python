@@ -8,46 +8,46 @@ from alsamemdebug import debuginit, debug, debugdone
 import alsamixer
 
 def print_elem(e):
-	direction = ["Playback", "Capture"]
+	direction = ["playback", "capture"]
 
 	print "Mixer Element '%s:%i':" % (e.name, e.index)
-	print '  isActive: %s' % e.isActive
-	print '  isEnumerated: %s' % e.isEnumerated
-	print '  hasCommonVolume: %s' % e.hasCommonVolume
-	print '  hasCommonSwitch: %s' % e.hasCommonSwitch
-	print '  hasCaptureSwitchExclusive: %s' % e.hasCaptureSwitchExclusive
-	if e.hasSwitch(True):
-		print '  getCaptureGroup: %s' % e.getCaptureGroup
+	print '  is_active: %s' % e.is_active
+	print '  is_enumerated: %s' % e.is_enumerated
+	print '  has_common_volume: %s' % e.has_common_volume
+	print '  has_common_switch: %s' % e.has_common_switch
+	print '  has_capture_switch_exclusive: %s' % e.has_capture_switch_exclusive
+	if e.has_switch(True):
+		print '  getCaptureGroup: %s' % e.get_capture_group
 	for capture in [False, True]:
-		print '  is%sMono: %s' % (direction[capture], e.isMono(capture))
-		print '  has%sVolume: %s' % (direction[capture], e.hasVolume(capture))
-		if e.hasVolume(capture):
-			print '  get%sVolumeRange: %s' % (direction[capture], e.getVolumeRange(capture))
-			print '  get%sVolumeRange_dB: %s' % (direction[capture], e.getVolumeRange_dB(capture))
-			print '  get%sVolumeTuple: %s' % (direction[capture], e.getVolumeTuple(capture)) 
-			print '  get%sVolumeArray: %s' % (direction[capture], e.getVolumeArray(capture)) 
-		print '  has%sSwitch: %s' % (direction[capture], e.hasSwitch(capture))
-		if e.hasSwitch(capture):
-			print '  get%sSwitchTuple: %s' % (direction[capture], e.getSwitchTuple(capture)) 
-		for channel in range(alsamixer.ChannelId['Last']+1):
-			if e.hasChannel(channel, capture):
-				print  '  has%sChannel%s: %s' % (direction[capture], channel, alsamixer.ChannelName[channel])
+		print '  is_%s_mono: %s' % (direction[capture], e.is_mono(capture))
+		print '  has_%s_volume: %s' % (direction[capture], e.has_volume(capture))
+		if e.has_volume(capture):
+			print '  get_%s_volume_range: %s' % (direction[capture], e.get_volume_range(capture))
+			print '  get_%s_volume_range_dB: %s' % (direction[capture], e.get_volume_range_dB(capture))
+			print '  get_%s_volume_tuple: %s' % (direction[capture], e.get_volume_tuple(capture)) 
+			print '  get_%s_volume_array: %s' % (direction[capture], e.get_volume_array(capture)) 
+		print '  has_%s_switch: %s' % (direction[capture], e.has_switch(capture))
+		if e.has_switch(capture):
+			print '  get_%s_switch_tuple: %s' % (direction[capture], e.get_switch_tuple(capture)) 
+		for channel in range(alsamixer.channel_id['LAST']+1):
+			if e.has_channel(channel, capture):
+				print  '  has_%s_channel%s: %s' % (direction[capture], channel, alsamixer.channel_name[channel])
 
 debuginit()
 
-print 'ChannelId:'
-print alsamixer.ChannelId
+print 'channel_id:'
+print alsamixer.channel_id
 
-print 'ChannelName:'
-print alsamixer.ChannelName
+print 'channel_name:'
+print alsamixer.channel_name
 
-print 'RegoptAbstracts:'
-print alsamixer.RegoptAbstract
+print 'regopt_abstracts:'
+print alsamixer.regopt_abstract
 
-print 'EventMask:'
-print alsamixer.EventMask
+print 'event_mask:'
+print alsamixer.event_mask
 
-print 'EventMaskRemove:', alsamixer.EventMaskRemove
+print 'event_mask_remove:', alsamixer.event_mask_remove
 
 mixer = alsamixer.Mixer()
 mixer.attach()
@@ -56,9 +56,9 @@ print 'Element Count:', mixer.count
 print 'Elements:'
 print mixer.list()
 element = alsamixer.Element(mixer, "PCM")
-element.setVolumeArray([128, 128])
+element.set_volume_array([128, 128])
 print_elem(element)
-element.setVolumeTuple([127, 127])
+element.set_volume_tuple([127, 127])
 print_elem(element)
 print_elem(alsamixer.Element(mixer, "Off-hook"))
 

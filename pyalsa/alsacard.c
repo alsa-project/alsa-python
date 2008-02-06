@@ -55,7 +55,7 @@ asoundlib_version(PyObject *self, PyObject *args)
 }
 
 PyDoc_STRVAR(card_load__doc__,
-"cardLoad([card]) -- Load driver for given card.");
+"card_load([card]) -- Load driver for given card.");
 
 static PyObject *
 card_load(PyObject *self, PyObject *args, PyObject *kwds)
@@ -70,7 +70,7 @@ card_load(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 PyDoc_STRVAR(card_list__doc__,
-"cardList() -- Get a card number list in tuple.");
+"card_list() -- Get a card number list in tuple.");
 
 static PyObject *
 card_list(PyObject *self, PyObject *args)
@@ -98,7 +98,7 @@ card_list(PyObject *self, PyObject *args)
 }
 
 PyDoc_STRVAR(card_get_index__doc__,
-"cardGetIndex(name) -- Get card index using ID string.");
+"card_get_index(name) -- Get card index using ID string.");
 
 static PyObject *
 card_get_index(PyObject *self, PyObject *args, PyObject *kwds)
@@ -113,7 +113,7 @@ card_get_index(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 PyDoc_STRVAR(card_get_name__doc__,
-"cardGetName(card) -- Get card name string using card index.");
+"card_get_name(card) -- Get card name string using card index.");
 
 static PyObject *
 card_get_name(PyObject *self, PyObject *args, PyObject *kwds)
@@ -135,7 +135,7 @@ card_get_name(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 PyDoc_STRVAR(card_get_longname__doc__,
-"cardGetLongname(card) -- Get long card name string using card index.");
+"card_get_longname(card) -- Get long card name string using card index.");
 
 static PyObject *
 card_get_longname(PyObject *self, PyObject *args, PyObject *kwds)
@@ -157,7 +157,7 @@ card_get_longname(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 PyDoc_STRVAR(device_name_hint__doc__,
-"deviceNameHint(card, interface) -- Get device name hints.");
+"device_name_hint(card, interface) -- Get device name hints.");
 
 static PyObject *
 device_name_hint(PyObject *self, PyObject *args, PyObject *kwds)
@@ -217,13 +217,13 @@ device_name_hint(PyObject *self, PyObject *args, PyObject *kwds)
  */
 
 static PyMethodDef pyalsacardparse_methods[] = {
-	{"asoundlibVersion", (PyCFunction)asoundlib_version, METH_NOARGS, asoundlib_version__doc__},
-	{"cardLoad", (PyCFunction)card_load, METH_VARARGS|METH_KEYWORDS, card_load__doc__},
-	{"cardList", (PyCFunction)card_list, METH_NOARGS, card_list__doc__},
-	{"cardGetIndex", (PyCFunction)card_get_index, METH_VARARGS|METH_KEYWORDS, card_get_index__doc__},
-	{"cardGetName", (PyCFunction)card_get_name, METH_VARARGS|METH_KEYWORDS, card_get_name__doc__},
-	{"cardGetLongname", (PyCFunction)card_get_longname, METH_VARARGS|METH_KEYWORDS, card_get_longname__doc__},
-	{"deviceNameHint", (PyCFunction)device_name_hint, METH_VARARGS|METH_KEYWORDS, device_name_hint__doc__},
+	{"asoundlib_version", (PyCFunction)asoundlib_version, METH_NOARGS, asoundlib_version__doc__},
+	{"card_load", (PyCFunction)card_load, METH_VARARGS|METH_KEYWORDS, card_load__doc__},
+	{"card_list", (PyCFunction)card_list, METH_NOARGS, card_list__doc__},
+	{"card_get_index", (PyCFunction)card_get_index, METH_VARARGS|METH_KEYWORDS, card_get_index__doc__},
+	{"card_get_name", (PyCFunction)card_get_name, METH_VARARGS|METH_KEYWORDS, card_get_name__doc__},
+	{"card_get_longname", (PyCFunction)card_get_longname, METH_VARARGS|METH_KEYWORDS, card_get_longname__doc__},
+	{"device_name_hint", (PyCFunction)device_name_hint, METH_VARARGS|METH_KEYWORDS, device_name_hint__doc__},
 	{NULL}
 };
 
