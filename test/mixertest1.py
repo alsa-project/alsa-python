@@ -26,6 +26,14 @@ def print_elem(e):
 			print '  get_%s_volume_range_dB: %s' % (direction[capture], e.get_volume_range_dB(capture))
 			print '  get_%s_volume_tuple: %s' % (direction[capture], e.get_volume_tuple(capture)) 
 			print '  get_%s_volume_array: %s' % (direction[capture], e.get_volume_array(capture)) 
+			vrange = e.get_volume_range(capture)
+			if vrange:
+				for vol in range(vrange[0], vrange[1]+1):
+					print '    vol %i == %idB' % (vol, e.ask_volume_dB(vol, capture))
+			dbrange = e.get_volume_range_dB(capture)
+			if dbrange:
+				for vol in range(dbrange[0], dbrange[1]+1):
+					print '    dBvol %i == %i' % (vol, e.ask_dB_volume(vol, -1, capture))
 		print '  has_%s_switch: %s' % (direction[capture], e.has_switch(capture))
 		if e.has_switch(capture):
 			print '  get_%s_switch_tuple: %s' % (direction[capture], e.get_switch_tuple(capture)) 

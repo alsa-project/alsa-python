@@ -433,6 +433,52 @@ pyalsamixerelement_hasswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 	}
 }
 
+PyDoc_STRVAR(askvoldB__doc__,
+"ask_volume_dB(value, [capture=False]]) -- Convert integer volume to dB value.");
+
+static PyObject *
+pyalsamixerelement_askvoldB(struct pyalsamixerelement *pyelem, PyObject *args)
+{
+	int res, dir = 0;
+	long volume, val;
+
+	if (!PyArg_ParseTuple(args, "|LI", &volume, &dir))
+		return NULL;
+
+	if (dir == 0)
+		res = snd_mixer_selem_ask_playback_vol_dB(pyelem->elem, volume, &val);
+	else
+		res = snd_mixer_selem_ask_capture_vol_dB(pyelem->elem, volume, &val);
+	if (res < 0) {
+		 PyErr_Format(PyExc_RuntimeError, "Cannot convert mixer volume (capture=%s, value=%li): %s", dir ? "True" : "False", volume, snd_strerror(-res));
+		 Py_RETURN_NONE;
+	}
+	return PyInt_FromLong(val);
+}
+
+PyDoc_STRVAR(askdBvol__doc__,
+"ask_dB_volume(dBvalue, [[direction=-1], [capture=False]]) -- Convert integer volume to dB value.");
+
+static PyObject *
+pyalsamixerelement_askdBvol(struct pyalsamixerelement *pyelem, PyObject *args)
+{
+	int res, xdir = -1, dir = 0;
+	long dBvolume, val;
+
+	if (!PyArg_ParseTuple(args, "|LII", &dBvolume, &xdir, &dir))
+		return NULL;
+
+	if (dir == 0)
+		res = snd_mixer_selem_ask_playback_dB_vol(pyelem->elem, dBvolume, xdir, &val);
+	else
+		res = snd_mixer_selem_ask_capture_dB_vol(pyelem->elem, dBvolume, xdir, &val);
+	if (res < 0) {
+		 PyErr_Format(PyExc_RuntimeError, "Cannot convert mixer volume (capture=%s, dBvalue=%li, direction=%i): %s", dir ? "True" : "False", dBvolume, xdir, snd_strerror(-res));
+		 Py_RETURN_NONE;
+	}
+	return PyInt_FromLong(val);
+}
+
 PyDoc_STRVAR(getvolume__doc__,
 "get_volume([channel=ChannelId['MONO'], [capture=False]]) -- Get volume.");
 
@@ -453,7 +499,7 @@ pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 		 PyErr_Format(PyExc_RuntimeError, "Cannot get mixer volume (capture=%s, channel=%i): %s", dir ? "True" : "False", chn, snd_strerror(-res));
 		 Py_RETURN_NONE;
 	}
-	return Py_BuildValue("i", res);
+	return PyInt_FromLong(val);
 }
 
 PyDoc_STRVAR(getvolumetuple__doc__,
@@ -1107,6 +1153,9 @@ static PyGetSetDef pyalsamixerelement_getseters[] = {
 
 static PyMethodDef pyalsamixerelement_methods[] = {
 
+	{"ask_volume_dB",(PyCFunction)pyalsamixerelement_askvoldB,	METH_VARARGS,	askvoldB__doc__},
+	{"ask_dB_volume",(PyCFunction)pyalsamixerelement_askdBvol,	METH_VARARGS,	askdBvol__doc__},
+	{"get_volume",	(PyCFunction)pyalsamixerelement_getvolume,	METH_VARARGS,	getvolume__doc__},
 	{"get_volume",	(PyCFunction)pyalsamixerelement_getvolume,	METH_VARARGS,	getvolume__doc__},
 	{"get_volume_tuple", (PyCFunction)pyalsamixerelement_getvolumetuple, METH_VARARGS,getvolumetuple__doc__},
 	{"get_volume_array", (PyCFunction)pyalsamixerelement_getvolumearray, METH_VARARGS,getvolumearray__doc__},
