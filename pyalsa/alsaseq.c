@@ -2839,7 +2839,9 @@ Sequencer_receive_events(SequencerObject *self,
   if (self->receive_bytes <= 0 && timeout != 0) {
     snd_seq_poll_descriptors(self->handle, self->receive_fds,
 			     self->receive_max, POLLIN);
+    Py_BEGIN_ALLOW_THREADS;
     ret = poll(self->receive_fds, self->receive_max, timeout);
+    Py_END_ALLOW_THREADS;
     if (ret == 0) {
       return list;
     } else if (ret < 0) {
