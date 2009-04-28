@@ -285,7 +285,7 @@
     int i = 0;						\
     unsigned char *t = (unsigned char *) data->ptr;	\
     for (i = 0; i < data->len; i++) {			\
-      PyList_Append(list, PyInt_FromLong(t[i]));	\
+      PyList_SetItem(list, i, PyInt_FromLong(t[i]));	\
     }							\
     SETDICTOBJ("ext", list);				\
   }
