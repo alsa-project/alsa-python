@@ -337,16 +337,27 @@
       self->event->data.ext.len = len;					\
       if (len > 0) {							\
 	int i;								\
-	self->buff = malloc(len);					\
 	for (i = 0; i < len; i++) {					\
 	  PyObject *item = PyList_GetItem(list, i);			\
 	  if (!PyInt_Check(item)) {					\
 	    PyErr_SetString(PyExc_TypeError,				\
 			    name " must be a list of integers");	\
-	    return NULL;						\
+	    self->event->data.ext.len = 0;				\
+            return NULL;						\
 	  }								\
+	}								\
+	self->buff = malloc(len);					\
+	if (self->buff == NULL) {					\
+	  PyErr_SetString(PyExc_TypeError,				\
+			name " no memory");				\
+	  self->event->data.ext.len = 0;				\
+	  return NULL;							\
+	}								\
+	for (i = 0; i < len; i++) {					\
+	  PyObject *item = PyList_GetItem(list, i);			\
 	  self->buff[i] = PyInt_AsLong(item);				\
 	}								\
+	self->event->data.ext.ptr = self->buff;				\
       }									\
     }									\
   }
@@ -697,7 +708,11 @@ SeqEvent_create(snd_seq_event_t *event) {
   memcpy(self->event, event, sizeof(snd_seq_event_t));
   if (snd_seq_ev_is_variable_type(self->event)) {
     self->buff = malloc(self->event->data.ext.len);
-    memcpy(self->event->data.ext.ptr, self->buff, self->event->data.ext.len);
+    if (self->buff == NULL) {
+      PyObject_Del(self);
+      return PyErr_NoMemory();
+    }
+    memcpy(self->buff, self->event->data.ext.ptr, self->event->data.ext.len);
     self->event->data.ext.ptr = self->buff;
   } else {
     self->buff = NULL;
