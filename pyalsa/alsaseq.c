@@ -905,7 +905,7 @@ static PyObject *
 SeqEvent_get_time(SeqEventObject *self) {
   if (snd_seq_ev_is_real(self->event)) {
     double time = self->event->time.time.tv_sec;
-    time += self->event->time.time.tv_nsec * 0.000001;
+    time += self->event->time.time.tv_nsec / 1000000000.0;
     return PyFloat_FromDouble(time);
   } else if (snd_seq_ev_is_tick(self->event)) {
     long tick = self->event->time.tick;
@@ -938,7 +938,7 @@ SeqEvent_set_time(SeqEventObject *self,
       double time = PyFloat_AsDouble(val);
       self->event->time.time.tv_sec = (unsigned int)time;
       time -= self->event->time.time.tv_sec;
-      self->event->time.time.tv_nsec = time * 1000000;
+      self->event->time.time.tv_nsec = time * 1000000000;
     }
   } else if (snd_seq_ev_is_tick(self->event)) {
     if (is_int) {
@@ -1759,7 +1759,7 @@ SeqEvent_repr(SeqEventObject *self) {
   if (snd_seq_ev_is_real(self->event)) {
     timemode = "real";
     dtime = self->event->time.time.tv_sec;
-    ntime += self->event->time.time.tv_nsec * 0.000001;
+    ntime += self->event->time.time.tv_nsec / 1000000000.0;
   } else {
     timemode = "tick";
     dtime = self->event->time.tick;
