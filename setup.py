@@ -3,7 +3,10 @@
 
 import os
 import sys
-from distutils.core import setup, Extension
+try:
+	from setuptools import setup, Extension
+except ImportError:
+	from distutils.core import setup, Extension
 
 VERSION='1.0.20'
 
