@@ -439,7 +439,7 @@ typedef struct {
   ;
 
   /* value of constant */
-  unsigned int value;
+  unsigned long int value;
   /* name of constant */
   const char *name;
   /* type of constant */
@@ -470,7 +470,7 @@ static PyObject *
 Constant_repr(ConstantObject *self) {
   return PyString_FromFormat("%s(0x%x)",
 			     self->name,
-			     self->value);
+			     (unsigned int)self->value);
 }
 
 /** alsaseq.Constant tp_str */
