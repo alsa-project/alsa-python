@@ -175,9 +175,7 @@ pyalsahcontrol_registerpoll(struct pyalsahcontrol *self, PyObject *args)
 	count = snd_hctl_poll_descriptors_count(self->handle);
 	if (count <= 0)
 		Py_RETURN_NONE;
-	pfd = malloc(sizeof(struct pollfd) * count);
-	if (pfd == NULL)
-		Py_RETURN_NONE;
+	pfd = alloca(sizeof(struct pollfd) * count);
 	count = snd_hctl_poll_descriptors(self->handle, pfd, count);
 	if (count <= 0)
 		Py_RETURN_NONE;
