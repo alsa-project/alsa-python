@@ -1500,7 +1500,7 @@ initalsahcontrol(void)
 	PyDict_SetItemString(d1, pname, o); \
 	Py_DECREF(o); }
 	
-	add_space4("VALUS", VALUE);
+	add_space4("VALUE", VALUE);
 	add_space4("INFO", INFO);
 	add_space4("ADD", ADD);
 	add_space4("TLV", TLV);
