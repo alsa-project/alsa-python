@@ -573,6 +573,7 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	static char *kwlist1[] = { "hctl", "interface", "device", "subdevice", "name", "index", NULL };
 	long helem = 0;
 	float f = 0;
+	snd_ctl_elem_info_t *elem_info;
 
 	snd_ctl_elem_id_alloca(&id);
 	pyhelem->pyhandle = NULL;
@@ -617,9 +618,17 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	Py_INCREF(hctl);
 	pyhelem->handle = PYHCTL(hctl)->handle;
 
+	/* FIXME: Remove it when hctl find works ok !!! */
+	snd_ctl_elem_info_alloca(&elem_info);
+	snd_ctl_elem_info_set_id(elem_info, id);
+	if (snd_ctl_elem_info(snd_hctl_ctl(pyhelem->handle), elem_info) < 0)
+		goto elem_not_found;
+	snd_ctl_elem_info_get_id(elem_info, id);
+
 	pyhelem->elem = helem > 0 ? (snd_hctl_elem_t *)helem :
 				snd_hctl_find_elem(pyhelem->handle, id);
 	if (pyhelem->elem == NULL) {
+elem_not_found:
 		if (numid == 0)
 			PyErr_Format(PyExc_IOError, "cannot find hcontrol element %i,%i,%i,'%s',%i", iface, device, subdevice, name, index);
 		else
