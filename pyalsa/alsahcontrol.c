@@ -1082,7 +1082,8 @@ PyDoc_STRVAR(setarray__doc__,
 static PyObject *
 pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 {
-	int type, len, list;
+	int type, list;
+	Py_ssize_t len;
 	long i, count;
 	snd_aes_iec958_t *iec958;
 	PyObject *t, *v;
