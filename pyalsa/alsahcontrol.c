@@ -197,6 +197,38 @@ pyalsahcontrol_registerpoll(struct pyalsahcontrol *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
+static PyObject *
+pyalsahcontrol_getpollfds(struct pyalsahcontrol *self, void *priv)
+{
+	PyObject *l, *t;
+	struct pollfd *pfds;
+	int i, count;
+
+	count = snd_hctl_poll_descriptors_count(self->handle);
+	if (count < 0) {
+pfds_error:
+		PyErr_Format(PyExc_IOError, "poll descriptors error: %s", snd_strerror(count));
+		return NULL;
+	}
+	pfds = alloca(sizeof(struct pollfd) * count);
+	count = snd_hctl_poll_descriptors(self->handle, pfds, count);
+	if (count < 0)
+		goto pfds_error;
+
+	l = PyList_New(count);
+	if (!l)
+		return NULL;
+	for (i = 0; i < count; ++i) {
+		t = PyTuple_New(2);
+		if (t) {
+			PyTuple_SET_ITEM(t, 0, PyInt_FromLong(pfds[i].fd));
+			PyTuple_SET_ITEM(t, 1, PyInt_FromLong(pfds[i].events));
+			PyList_SetItem(l, i, t);
+		}
+	}
+	return l;
+}
+
 PyDoc_STRVAR(list__doc__,
 "list() -- Return a list (tuple) of element IDs in (numid,interface,device,subdevice,name,index) tuple.");
 
@@ -399,6 +431,7 @@ pyalsahcontrol_dealloc(struct pyalsahcontrol *self)
 static PyGetSetDef pyalsahcontrol_getseters[] = {
 
 	{"count",	(getter)pyalsahcontrol_getcount,	NULL,	"hcontrol element count",		NULL},
+	{"poll_fds",	(getter)pyalsahcontrol_getpollfds,	NULL,	"list of (fd, eventbits) tuples",	NULL},
 	{"get_C_hctl",	(getter)pyalsahcontrol_getChctl,	NULL,	"hcontrol C pointer (internal)",	NULL},
 
 	{NULL}
