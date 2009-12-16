@@ -8,7 +8,7 @@ try:
 except ImportError:
 	from distutils.core import setup, Extension
 
-VERSION='1.0.21'
+VERSION='1.0.22'
 
 if os.path.exists("version"):
 	fp = open("version", "r")
