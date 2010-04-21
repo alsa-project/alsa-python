@@ -3236,6 +3236,53 @@ Sequencer_stop_queue(SequencerObject *self,
   Py_RETURN_NONE;
 }
 
+PyDoc_STRVAR(Sequencer_registerpoll__doc__,
+"register_poll(pollObj, input=False, output=False) -- Register poll file descriptors.");
+
+static PyObject *
+Sequencer_registerpoll(SequencerObject *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *pollObj, *reg, *t;
+    struct pollfd *pfd;
+    int i, count;
+    int input = 0;
+    int output = 0;
+    int mode = POLLIN|POLLOUT;
+
+    static char * kwlist[] = { "pollObj", "input", "output", NULL };
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|ii", kwlist, &pollObj, &input, &output))
+        return NULL;
+
+    if (input && !output)
+        mode = POLLIN;
+    else if (!input && output)
+        mode = POLLOUT;
+
+    count = snd_seq_poll_descriptors_count(self->handle, mode);
+    if (count <= 0)
+        Py_RETURN_NONE;
+    pfd = alloca(sizeof(struct pollfd) * count);
+    count = snd_seq_poll_descriptors(self->handle, pfd, count, mode);
+    if (count <= 0)
+        Py_RETURN_NONE;
+
+    reg = PyObject_GetAttr(pollObj, PyString_InternFromString("register"));
+
+    for (i = 0; i < count; i++) {
+        t = PyTuple_New(2);
+        if (t) {
+            PyTuple_SET_ITEM(t, 0, PyInt_FromLong(pfd[i].fd));
+            PyTuple_SET_ITEM(t, 1, PyInt_FromLong(pfd[i].events));
+            Py_XDECREF(PyObject_CallObject(reg, t));
+            Py_DECREF(t);
+        }
+    }
+
+    Py_XDECREF(reg);
+
+    Py_RETURN_NONE;
+}
 
 
 
@@ -3309,6 +3356,10 @@ static PyMethodDef Sequencer_methods[] = {
    (PyCFunction) Sequencer_stop_queue,
    METH_VARARGS | METH_KEYWORDS,
    Sequencer_stop_queue__doc__},
+  {"register_poll",
+   (PyCFunction) Sequencer_registerpoll,
+   METH_VARARGS | METH_KEYWORDS,
+   Sequencer_registerpoll__doc__},
   {NULL}
 };
 
