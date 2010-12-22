@@ -164,9 +164,7 @@ pyalsamixer_registerpoll(struct pyalsamixer *self, PyObject *args)
 	count = snd_mixer_poll_descriptors_count(self->handle);
 	if (count <= 0)
 		Py_RETURN_NONE;
-	pfd = malloc(sizeof(struct pollfd) * count);
-	if (pfd == NULL)
-		Py_RETURN_NONE;
+	pfd = alloca(sizeof(struct pollfd) * count);
 	count = snd_mixer_poll_descriptors(self->handle, pfd, count);
 	if (count <= 0)
 		Py_RETURN_NONE;
@@ -186,6 +184,38 @@ pyalsamixer_registerpoll(struct pyalsamixer *self, PyObject *args)
 	Py_XDECREF(reg);
 
 	Py_RETURN_NONE;
+}
+
+static PyObject *
+pyalsamixer_getpollfds(struct pyalsamixer *self, void *priv)
+{
+	PyObject *l, *t;
+	struct pollfd *pfds;
+	int i, count;
+
+	count = snd_mixer_poll_descriptors_count(self->handle);
+	if (count < 0) {
+pfds_error:
+		PyErr_Format(PyExc_IOError, "poll descriptors error: %s", snd_strerror(count));
+		return NULL;
+	}
+	pfds = alloca(sizeof(struct pollfd) * count);
+	count = snd_mixer_poll_descriptors(self->handle, pfds, count);
+	if (count < 0)
+		goto pfds_error;
+
+	l = PyList_New(count);
+	if (!l)
+		return NULL;
+	for (i = 0; i < count; ++i) {
+		t = PyTuple_New(2);
+		if (t) {
+			PyTuple_SET_ITEM(t, 0, PyInt_FromLong(pfds[i].fd));
+			PyTuple_SET_ITEM(t, 1, PyInt_FromLong(pfds[i].events));
+			PyList_SetItem(l, i, t);
+		}
+	}
+	return l;
 }
 
 PyDoc_STRVAR(list__doc__,
@@ -257,7 +287,8 @@ pyalsamixer_dealloc(struct pyalsamixer *self)
 
 static PyGetSetDef pyalsamixer_getseters[] = {
 
-	{"count",	(getter)pyalsamixer_getcount,	NULL,	"mixer element count",		NULL},
+	{"count",	(getter)pyalsamixer_getcount,   NULL,	"mixer element count",		NULL},
+	{"poll_fds",    (getter)pyalsamixer_getpollfds,     NULL,	"list of (fd, eventbits) tuples",	NULL},
 
 	{NULL}
 };
