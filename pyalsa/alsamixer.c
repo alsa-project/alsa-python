@@ -372,7 +372,7 @@ pyalsamixerelement_ismono(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -393,7 +393,7 @@ pyalsamixerelement_haschannel(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO;
 
-	if (!PyArg_ParseTuple(args, "|II", &chn, &dir))
+	if (!PyArg_ParseTuple(args, "|ii", &chn, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -415,7 +415,7 @@ pyalsamixerelement_hasvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -444,7 +444,7 @@ pyalsamixerelement_hasswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -473,7 +473,7 @@ pyalsamixerelement_askvoldB(struct pyalsamixerelement *pyelem, PyObject *args)
 	int res, dir = 0;
 	long volume, val;
 
-	if (!PyArg_ParseTuple(args, "|LI", &volume, &dir))
+	if (!PyArg_ParseTuple(args, "|li", &volume, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -496,7 +496,7 @@ pyalsamixerelement_askdBvol(struct pyalsamixerelement *pyelem, PyObject *args)
 	int res, xdir = -1, dir = 0;
 	long dBvolume, val;
 
-	if (!PyArg_ParseTuple(args, "|LII", &dBvolume, &xdir, &dir))
+	if (!PyArg_ParseTuple(args, "|lii", &dBvolume, &xdir, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -519,7 +519,7 @@ pyalsamixerelement_getvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "|II", &chn, &dir))
+	if (!PyArg_ParseTuple(args, "|ii", &chn, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -543,7 +543,7 @@ pyalsamixerelement_getvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 	long val;
 	PyObject *t;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0) {
@@ -617,7 +617,7 @@ pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *a
 	long val;
 	PyObject *t, *l;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0) {
@@ -694,7 +694,7 @@ pyalsamixerelement_setvolume(struct pyalsamixerelement *pyelem, PyObject *args)
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "L|II", &val, &chn, &dir))
+	if (!PyArg_ParseTuple(args, "l|ii", &val, &chn, &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_volume(pyelem->elem, chn, val);
@@ -718,7 +718,7 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 	int i, res, dir = 0;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "O|I", &t, &dir))
+	if (!PyArg_ParseTuple(args, "O|i", &t, &dir))
 		return NULL;
 	if (!PyTuple_Check(t) && !PyList_Check(t))
 		return PyErr_Format(PyExc_RuntimeError, "Volume values in tuple are expected!");
@@ -770,7 +770,7 @@ pyalsamixerelement_setvolumeall(struct pyalsamixerelement *pyelem, PyObject *arg
 	int res, dir = 0;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "L|I", &val, &dir))
+	if (!PyArg_ParseTuple(args, "l|i", &val, &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_volume_all(pyelem->elem, val);
@@ -791,7 +791,7 @@ pyalsamixerelement_getrange(struct pyalsamixerelement *pyelem, PyObject *args)
 	long min, max;
 	PyObject *t;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_get_playback_volume_range(pyelem->elem, &min, &max);
@@ -816,7 +816,7 @@ pyalsamixerelement_setrange(struct pyalsamixerelement *pyelem, PyObject *args)
 	int dir = 0, res;
 	long min, max;
 
-	if (!PyArg_ParseTuple(args, "LL|I", &min, &max, &dir))
+	if (!PyArg_ParseTuple(args, "ll|i", &min, &max, &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_volume_range(pyelem->elem, min, max);
@@ -835,7 +835,7 @@ pyalsamixerelement_getswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO, val;
 
-	if (!PyArg_ParseTuple(args, "|II", &chn, &dir))
+	if (!PyArg_ParseTuple(args, "|ii", &chn, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -862,7 +862,7 @@ pyalsamixerelement_getswitchtuple(struct pyalsamixerelement *pyelem, PyObject *a
 	int res, dir = 0, i, last, val;
 	PyObject *t;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 
 	if (dir == 0) {
@@ -934,7 +934,7 @@ pyalsamixerelement_setswitch(struct pyalsamixerelement *pyelem, PyObject *args)
 {
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO, val;
 
-	if (!PyArg_ParseTuple(args, "I|II", &val, &chn, &dir))
+	if (!PyArg_ParseTuple(args, "i|ii", &val, &chn, &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_switch(pyelem->elem, chn, val);
@@ -954,7 +954,7 @@ pyalsamixerelement_setswitchtuple(struct pyalsamixerelement *pyelem, PyObject *a
 	PyObject *t, *o;
 	int i, res, dir = 0, val;
 
-	if (!PyArg_ParseTuple(args, "O|I", &t, &dir))
+	if (!PyArg_ParseTuple(args, "O|i", &t, &dir))
 		return NULL;
 	if (!PyTuple_Check(t))
 		return PyErr_Format(PyExc_RuntimeError, "Switch state values in tuple are expected!");
@@ -982,7 +982,7 @@ pyalsamixerelement_setswitchall(struct pyalsamixerelement *pyelem, PyObject *arg
 {
 	int res, dir = 0, val;
 
-	if (!PyArg_ParseTuple(args, "I|I", &val, &dir))
+	if (!PyArg_ParseTuple(args, "i|i", &val, &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_switch_all(pyelem->elem, val);
@@ -1002,7 +1002,7 @@ pyalsamixerelement_getvolumedb(struct pyalsamixerelement *pyelem, PyObject *args
 	int res, dir = 0, chn = SND_MIXER_SCHN_MONO;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "|II", &chn, &dir))
+	if (!PyArg_ParseTuple(args, "|ii", &chn, &dir))
 		return NULL;
 
 	if (dir == 0)
@@ -1025,7 +1025,7 @@ pyalsamixerelement_setvolumedb(struct pyalsamixerelement *pyelem, PyObject *args
 	int res, dir = 0, dir1 = 0, chn = SND_MIXER_SCHN_MONO;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "L|III", &val, &chn, &dir, &dir1))
+	if (!PyArg_ParseTuple(args, "l|iii", &val, &chn, &dir, &dir1))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_dB(pyelem->elem, chn, val, dir1);
@@ -1045,7 +1045,7 @@ pyalsamixerelement_setvolumealldb(struct pyalsamixerelement *pyelem, PyObject *a
 	int res, dir = 0, dir1 = 0;
 	long val;
 
-	if (!PyArg_ParseTuple(args, "L|II", &val, &dir, &dir1))
+	if (!PyArg_ParseTuple(args, "l|ii", &val, &dir, &dir1))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_set_playback_dB_all(pyelem->elem, val, dir1);
@@ -1066,7 +1066,7 @@ pyalsamixerelement_getrangedb(struct pyalsamixerelement *pyelem, PyObject *args)
 	long min, max;
 	PyObject *t;
 
-	if (!PyArg_ParseTuple(args, "|I", &dir))
+	if (!PyArg_ParseTuple(args, "|i", &dir))
 		return NULL;
 	if (dir == 0)
 		res = snd_mixer_selem_get_playback_dB_range(pyelem->elem, &min, &max);
