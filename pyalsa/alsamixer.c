@@ -627,7 +627,7 @@ pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *a
 				return NULL;
  			res = snd_mixer_selem_get_playback_volume(pyelem->elem, SND_MIXER_SCHN_MONO, &val);
  			if (res >= 0)
- 				PyTuple_SetItem(t, 0, PyInt_FromLong(val));
+				PyList_SetItem(t, 0, PyInt_FromLong(val));
 		} else {
 			t = PyList_New(SND_MIXER_SCHN_LAST+1);
 			if (!t)
@@ -658,7 +658,7 @@ pyalsamixerelement_getvolumearray(struct pyalsamixerelement *pyelem, PyObject *a
 				return NULL;
  			res = snd_mixer_selem_get_capture_volume(pyelem->elem, SND_MIXER_SCHN_MONO, &val);
  			if (res >= 0)
- 				PyTuple_SET_ITEM(t, 0, PyInt_FromLong(val));
+				PyList_SET_ITEM(t, 0, PyInt_FromLong(val));
 		} else {
 			t = PyList_New(SND_MIXER_SCHN_LAST+1);
 			if (!t)
