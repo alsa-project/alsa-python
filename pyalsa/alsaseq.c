@@ -2163,11 +2163,7 @@ Sequencer_get_clientname(SequencerObject *self) {
 static int
 Sequencer_set_clientname(SequencerObject *self,
 			 PyObject *val) {
-  char *buff;
-
   SETCHECKPYSTR("clientname", val);
-
-  buff = PyString_AsString(val);
 
   snd_seq_set_client_name(self->handle, PyString_AsString(val));
 
