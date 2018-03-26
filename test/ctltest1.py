@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 # -*- Python -*-
 
 import sys
@@ -7,16 +7,16 @@ del sys
 import alsacontrol
 
 ctl = alsacontrol.Control()
-print 'Card info:', ctl.card_info()
+print('Card info:', ctl.card_info())
 try:
-  print 'Hwdep devices:', ctl.hwdep_devices()
-except IOError, msg:
-  print 'No hwdep devices:', msg
+  print('Hwdep devices:', ctl.hwdep_devices())
+except IOError as msg:
+  print('No hwdep devices:', msg)
 try:
-  print 'PCM devices:', ctl.pcm_devices()
-except IOError, msg:
-  print 'No PCM devices:', msg
+  print('PCM devices:', ctl.pcm_devices())
+except IOError as msg:
+  print('No PCM devices:', msg)
 try:
-  print 'Rawmidi devices:', ctl.rawmidi_devices()
-except IOError, msg:
-  print 'No rawmidi devices:', msg
+  print('Rawmidi devices:', ctl.rawmidi_devices())
+except IOError as msg:
+  print('No rawmidi devices:', msg)

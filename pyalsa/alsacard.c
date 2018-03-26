@@ -19,25 +19,10 @@
  *
  */
 
-#include "Python.h"
-#include "structmember.h"
-#include "frameobject.h"
-#ifndef PY_LONG_LONG
-  #define PY_LONG_LONG LONG_LONG
-#endif
+#include "common.h"
 #include "sys/poll.h"
 #include "stdlib.h"
 #include "alsa/asoundlib.h"
-
-#ifndef Py_RETURN_NONE
-#define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
-#endif
-#ifndef Py_RETURN_TRUE
-#define Py_RETURN_TRUE return Py_INCREF(Py_True), Py_True
-#endif
-#ifndef Py_RETURN_FALSE
-#define Py_RETURN_FALSE return Py_INCREF(Py_False), Py_False
-#endif
 
 static PyObject *module;
 
@@ -189,7 +174,7 @@ device_name_hint(PyObject *self, PyObject *args, PyObject *kwds)
 			str = snd_device_name_get_hint(*hint, *id);
 			if (str == NULL)
 				break;
-			v = PyString_FromString(str);
+			v = PyUnicode_FromString(str);
 			free(str);
 			if (v == NULL)
 				goto err1;
@@ -227,13 +212,14 @@ static PyMethodDef pyalsacardparse_methods[] = {
 	{NULL}
 };
 
-PyMODINIT_FUNC
-initalsacard(void)
+MOD_INIT(alsacard)
 {
-	module = Py_InitModule3("alsacard", pyalsacardparse_methods, "libasound alsacard wrapper");
+	MOD_DEF(module, "alsacard", "libasound alsacard wrapper", pyalsacardparse_methods);
 	if (module == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 	if (PyErr_Occurred())
 		Py_FatalError("Cannot initialize module alsacard");
+
+	return MOD_SUCCESS_VAL(module);
 }

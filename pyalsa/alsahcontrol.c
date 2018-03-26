@@ -19,25 +19,10 @@
  *
  */
 
-#include "Python.h"
-#include "structmember.h"
-#include "frameobject.h"
-#ifndef PY_LONG_LONG
-  #define PY_LONG_LONG LONG_LONG
-#endif
+#include "common.h"
 #include "sys/poll.h"
 #include "stdlib.h"
 #include "alsa/asoundlib.h"
-
-#ifndef Py_RETURN_NONE
-#define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
-#endif
-#ifndef Py_RETURN_TRUE
-#define Py_RETURN_TRUE return Py_INCREF(Py_True), Py_True
-#endif
-#ifndef Py_RETURN_FALSE
-#define Py_RETURN_FALSE return Py_INCREF(Py_False), Py_False
-#endif
 
 static int element_callback(snd_hctl_elem_t *elem, unsigned int mask);
 
@@ -59,17 +44,6 @@ struct pyalsahcontrol {
 	snd_hctl_t *handle;
 };
 
-static inline PyObject *get_bool(int val)
-{
-	if (val) {
-		Py_INCREF(Py_True);
-		return Py_True;
-	} else {
-		Py_INCREF(Py_False);
-		return Py_False;
-	}
-}
-
 static PyObject *id_to_python(snd_ctl_elem_id_t *id)
 {
 	PyObject *v;
@@ -81,7 +55,7 @@ static PyObject *id_to_python(snd_ctl_elem_id_t *id)
 	PyTuple_SET_ITEM(v, 1, PyInt_FromLong(snd_ctl_elem_id_get_interface(id)));
 	PyTuple_SET_ITEM(v, 2, PyInt_FromLong(snd_ctl_elem_id_get_device(id)));
 	PyTuple_SET_ITEM(v, 3, PyInt_FromLong(snd_ctl_elem_id_get_subdevice(id)));
-	PyTuple_SET_ITEM(v, 4, PyString_FromString(snd_ctl_elem_id_get_name(id)));
+	PyTuple_SET_ITEM(v, 4, PyUnicode_FromString(snd_ctl_elem_id_get_name(id)));
 	PyTuple_SET_ITEM(v, 5, PyInt_FromLong(snd_ctl_elem_id_get_index(id)));
 	return v;
 }
@@ -180,7 +154,7 @@ pyalsahcontrol_registerpoll(struct pyalsahcontrol *self, PyObject *args)
 	if (count <= 0)
 		Py_RETURN_NONE;
 	
-	reg = PyObject_GetAttr(pollObj, PyString_InternFromString("register"));
+	reg = PyObject_GetAttr(pollObj, InternFromString("register"));
 
 	for (i = 0; i < count; i++) {
 		t = PyTuple_New(2);
@@ -273,7 +247,7 @@ PyDoc_STRVAR(elementnew__doc__,
 static PyObject *
 pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 {
-	snd_ctl_elem_type_t type;
+	long type;
 	PyObject *o;
 	unsigned int count;
 	long min, max, step;
@@ -288,12 +262,11 @@ pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 		return NULL;
 	}
 	o = PyTuple_GetItem(args, 0);
-	if (!PyInt_Check(o)) {
+	if (get_long1(o, &type)) {
 		PyErr_SetString(PyExc_TypeError, "type argument is not integer");
 		return NULL;
 	}
 	Py_INCREF(o);
-	type = PyInt_AsLong(o);
 	o = PyTuple_GetItem(args, 1);
 	if (!PyTuple_Check(o)) {
 		PyErr_SetString(PyExc_TypeError, "id argument is not tuple");
@@ -317,7 +290,7 @@ pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 			return NULL;
 		break;
 	default:
-		PyErr_Format(PyExc_TypeError, "type %i is not supported yet", type);
+		PyErr_Format(PyExc_TypeError, "type %li is not supported yet", type);
 		return NULL;
 		
 	}
@@ -342,7 +315,7 @@ pyalsahcontrol_elementnew(struct pyalsahcontrol *self, PyObject *args)
 		break;
 	}
 	if (res < 0) {
-		PyErr_Format(PyExc_IOError, "new element of type %i create error: %s", type, snd_strerror(-res));
+		PyErr_Format(PyExc_IOError, "new element of type %li create error: %s", type, snd_strerror(-res));
 		return NULL;
 	}
 	Py_RETURN_NONE;
@@ -424,8 +397,6 @@ pyalsahcontrol_dealloc(struct pyalsahcontrol *self)
 {
 	if (self->handle != NULL)
 		snd_hctl_close(self->handle);
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsahcontrol_getseters[] = {
@@ -450,7 +421,7 @@ static PyMethodDef pyalsahcontrol_methods[] = {
 };
 
 static PyTypeObject pyalsahcontrol_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsahcontrol.HControl",
 	tp_basicsize:	sizeof(struct pyalsahcontrol),
 	tp_dealloc:	(destructor)pyalsahcontrol_dealloc,
@@ -482,7 +453,7 @@ struct pyalsahcontrolelement {
 static PyObject *
 pyalsahcontrolelement_getname(struct pyalsahcontrolelement *pyhelem, void *priv)
 {
-	return PyString_FromString(snd_hctl_elem_get_name(pyhelem->elem));
+	return PyUnicode_FromString(snd_hctl_elem_get_name(pyhelem->elem));
 }
 
 typedef unsigned int (*fcn1)(void *);
@@ -588,10 +559,16 @@ pyalsahcontrolelement_init(struct pyalsahcontrolelement *pyhelem, PyObject *args
 	if (PyFloat_Check(first)) {
 		if (!PyArg_ParseTuple(args, "Ofi", &hctl, &f, &helem))
 			return -1;
+	} else if (PyLong_Check(first)) {
+		if (!PyArg_ParseTuple(args, "Oi", &hctl, &numid))
+			return -1;
+		snd_ctl_elem_id_set_numid(id, numid);
+#if PY_MAJOR_VERSION < 3
 	} else if (PyInt_Check(first)) {
 		if (!PyArg_ParseTuple(args, "Oi", &hctl, &numid))
 			return -1;
 		snd_ctl_elem_id_set_numid(id, numid);
+#endif
 	} else if (PyTuple_Check(first)) {
 		if (!PyArg_ParseTuple(args, "OO", &hctl, &first))
 			return -1;
@@ -649,8 +626,6 @@ pyalsahcontrolelement_dealloc(struct pyalsahcontrolelement *self)
 	if (self->pyhandle) {
 		Py_XDECREF(self->pyhandle);
 	}
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsahcontrolelement_getseters[] = {
@@ -677,7 +652,7 @@ static PyMethodDef pyalsahcontrolelement_methods[] = {
 };
 
 static PyTypeObject pyalsahcontrolelement_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsahcontrol.Element",
 	tp_basicsize:	sizeof(struct pyalsahcontrolelement),
 	tp_dealloc:	(destructor)pyalsahcontrolelement_dealloc,
@@ -773,7 +748,7 @@ typedef const char * (*fcn5)(void *);
 static PyObject *
 pyalsahcontrolinfo_str(struct pyalsahcontrolinfo *pyinfo, void *fcn)
 {
-	return PyString_FromString(((fcn5)fcn)(pyinfo->info));
+	return PyUnicode_FromString(((fcn5)fcn)(pyinfo->info));
 }
 
 static PyObject *
@@ -790,7 +765,7 @@ static PyObject *
 pyalsahcontrolinfo_dimensions(struct pyalsahcontrolinfo *pyinfo, void *priv)
 {
 	int dims = snd_ctl_elem_info_get_dimensions(pyinfo->info);
-	unsigned int i;
+	int i;
 	PyObject *t;
 	
 	if (dims <= 0)
@@ -809,7 +784,7 @@ pyalsahcontrolinfo_itemnames(struct pyalsahcontrolinfo *pyinfo, void *priv)
 {
 	int items;
 	int res;
-	unsigned int i;
+	int i;
 	PyObject *t;
 	
 	if (snd_ctl_elem_info_get_type(pyinfo->info) != SND_CTL_ELEM_TYPE_ENUMERATED) {
@@ -829,7 +804,7 @@ pyalsahcontrolinfo_itemnames(struct pyalsahcontrolinfo *pyinfo, void *priv)
 			Py_INCREF(Py_None);
 			PyTuple_SET_ITEM(t, i, Py_None);
 		} else {
-			PyTuple_SET_ITEM(t, i, PyString_FromString(snd_ctl_elem_info_get_item_name(pyinfo->info)));
+			PyTuple_SET_ITEM(t, i, PyUnicode_FromString(snd_ctl_elem_info_get_item_name(pyinfo->info)));
 		}
 	}
 	return t;
@@ -883,8 +858,6 @@ pyalsahcontrolinfo_dealloc(struct pyalsahcontrolinfo *self)
 	if (self->pyelem) {
 		Py_XDECREF(self->pyelem);
 	}
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
@@ -934,7 +907,7 @@ static PyMethodDef pyalsahcontrolinfo_methods[] = {
 };
 
 static PyTypeObject pyalsahcontrolinfo_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsahcontrol.Info",
 	tp_basicsize:	sizeof(struct pyalsahcontrolinfo),
 	tp_dealloc:	(destructor)pyalsahcontrolinfo_dealloc,
@@ -982,7 +955,7 @@ typedef const char * (*fcn11)(void *);
 static PyObject *
 pyalsahcontrolvalue_str(struct pyalsahcontrolvalue *pyvalue, void *fcn)
 {
-	return PyString_FromString(((fcn5)fcn)(pyvalue->value));
+	return PyUnicode_FromString(((fcn5)fcn)(pyvalue->value));
 }
 
 static PyObject *
@@ -1080,13 +1053,13 @@ pyalsahcontrolvalue_get1(struct pyalsahcontrolvalue *self, PyObject *args, int l
 		}
 		snd_ctl_elem_value_get_iec958(self->value, iec958);
 		if (!list) {
-			PyTuple_SET_ITEM(t, 0, PyString_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
-			PyTuple_SET_ITEM(t, 1, PyString_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
-			PyTuple_SET_ITEM(t, 2, PyString_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyTuple_SET_ITEM(t, 0, PyUnicode_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyTuple_SET_ITEM(t, 1, PyUnicode_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyTuple_SET_ITEM(t, 2, PyUnicode_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		} else {
-			PyList_SetItem(t, 0, PyString_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
-			PyList_SetItem(t, 1, PyString_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
-			PyList_SetItem(t, 2, PyString_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyList_SetItem(t, 0, PyUnicode_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyList_SetItem(t, 1, PyUnicode_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyList_SetItem(t, 2, PyUnicode_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		}
 		free(iec958);
 		break;
@@ -1124,7 +1097,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 {
 	int type, list;
 	Py_ssize_t len;
-	long i, count;
+	long i, count, lval;
 	snd_aes_iec958_t *iec958;
 	PyObject *t, *v;
 	char *str;
@@ -1147,7 +1120,9 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
-			snd_ctl_elem_value_set_boolean(self->value, i, PyInt_AsLong(v));
+			if (get_long(v, &lval))
+				break;
+			snd_ctl_elem_value_set_boolean(self->value, i, lval);
 		}
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER:
@@ -1156,7 +1131,9 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
-			snd_ctl_elem_value_set_integer(self->value, i, PyInt_AsLong(v));
+			if (get_long(v, &lval))
+				break;
+			snd_ctl_elem_value_set_integer(self->value, i, lval);
 		}
 		break;
 	case SND_CTL_ELEM_TYPE_INTEGER64:
@@ -1174,7 +1151,9 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
-			snd_ctl_elem_value_set_enumerated(self->value, i, PyInt_AsLong(v));
+			if (get_long(v, &lval))
+				break;
+			snd_ctl_elem_value_set_enumerated(self->value, i, lval);
 		}
 		break;
 	case SND_CTL_ELEM_TYPE_BYTES:
@@ -1183,7 +1162,9 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			if (v == Py_None)
 				continue;
 			Py_INCREF(v);
-			snd_ctl_elem_value_set_byte(self->value, i, PyInt_AsLong(v));
+			if (get_long(v, &lval))
+				break;
+			snd_ctl_elem_value_set_byte(self->value, i, lval);
 		}
 		break;
 	case SND_CTL_ELEM_TYPE_IEC958:
@@ -1199,25 +1180,25 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 		len = 0;
 		v = !list ? PyTuple_GET_ITEM(t, 0) : PyList_GetItem(t, 0);
 		Py_INCREF(v);
-		if (PyString_AsStringAndSize(v, &str, &len))
+		if (PyBytes_AsStringAndSize(v, &str, &len))
 			goto err1;
-		if (len > sizeof(iec958->status))
+		if (len > (Py_ssize_t)sizeof(iec958->status))
 			len = sizeof(iec958->status);
 		memcpy(iec958->status, str, len);
 		len = 0;
 		v = !list ? PyTuple_GET_ITEM(t, 1) : PyList_GetItem(t, 1);
 		Py_INCREF(v);
-		if (PyString_AsStringAndSize(v, &str, &len))
+		if (PyBytes_AsStringAndSize(v, &str, &len))
 			goto err1;
-		if (len > sizeof(iec958->subcode))
+		if (len > (Py_ssize_t)sizeof(iec958->subcode))
 			len = sizeof(iec958->subcode);
 		memcpy(iec958->subcode, str, len);
 		len = 0;
 		v = !list ? PyTuple_GET_ITEM(t, 2) : PyList_GetItem(t, 2);
 		Py_INCREF(v);
-		if (PyString_AsStringAndSize(v, &str, &len))
+		if (PyBytes_AsStringAndSize(v, &str, &len))
 			goto err1;
-		if (len > sizeof(iec958->dig_subframe))
+		if (len > (Py_ssize_t)sizeof(iec958->dig_subframe))
 			len = sizeof(iec958->dig_subframe);
 		memcpy(iec958->dig_subframe, str, len);
 		free(iec958);
@@ -1311,8 +1292,6 @@ pyalsahcontrolvalue_dealloc(struct pyalsahcontrolvalue *self)
 	if (self->pyelem) {
 		Py_XDECREF(self->pyelem);
 	}
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsahcontrolvalue_getseters[] = {
@@ -1345,7 +1324,7 @@ static PyMethodDef pyalsahcontrolvalue_methods[] = {
 };
 
 static PyTypeObject pyalsahcontrolvalue_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsahcontrol.Value",
 	tp_basicsize:	sizeof(struct pyalsahcontrolvalue),
 	tp_dealloc:	(destructor)pyalsahcontrolvalue_dealloc,
@@ -1367,31 +1346,35 @@ static PyMethodDef pyalsahcontrolparse_methods[] = {
 	{NULL}
 };
 
-PyMODINIT_FUNC
-initalsahcontrol(void)
+MOD_INIT(alsahcontrol)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
 
-	if (PyType_Ready(&pyalsahcontrol_type) < 0)
-		return;
-	if (PyType_Ready(&pyalsahcontrolelement_type) < 0)
-		return;
-	if (PyType_Ready(&pyalsahcontrolinfo_type) < 0)
-		return;
-	if (PyType_Ready(&pyalsahcontrolvalue_type) < 0)
-		return;
+	pyalsahcontrol_type.tp_free = PyObject_GC_Del;
+	pyalsahcontrolelement_type.tp_free = PyObject_GC_Del;
+	pyalsahcontrolinfo_type.tp_free = PyObject_GC_Del;
+	pyalsahcontrolvalue_type.tp_free = PyObject_GC_Del;
 
-	module = Py_InitModule3("alsahcontrol", pyalsahcontrolparse_methods, "libasound hcontrol wrapper");
+	if (PyType_Ready(&pyalsahcontrol_type) < 0)
+		return MOD_ERROR_VAL;
+	if (PyType_Ready(&pyalsahcontrolelement_type) < 0)
+		return MOD_ERROR_VAL;
+	if (PyType_Ready(&pyalsahcontrolinfo_type) < 0)
+		return MOD_ERROR_VAL;
+	if (PyType_Ready(&pyalsahcontrolvalue_type) < 0)
+		return MOD_ERROR_VAL;
+
+	MOD_DEF(module, "alsahcontrol", "libasound hcontrol wrapper", pyalsahcontrolparse_methods);
 	if (module == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 #if 0
 	buildin = PyImport_AddModule("__buildin__");
 	if (buildin == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	if (PyObject_SetAttrString(module, "__buildins__", buildin) < 0)
-		return;
+		return MOD_ERROR_VAL;
 #endif
 
 	Py_INCREF(&pyalsahcontrol_type);
@@ -1434,7 +1417,7 @@ initalsahcontrol(void)
 	l1 = PyList_New(0);
 
 	for (i = 0; i <= SND_CTL_ELEM_IFACE_LAST; i++) {
-		o = PyString_FromString(snd_ctl_elem_iface_name(i));
+		o = PyUnicode_FromString(snd_ctl_elem_iface_name(i));
 		PyList_Append(l1, o);
 		Py_DECREF(o);
 	}
@@ -1468,7 +1451,7 @@ initalsahcontrol(void)
 	l1 = PyList_New(0);
 
 	for (i = 0; i <= SND_CTL_ELEM_TYPE_LAST; i++) {
-		o = PyString_FromString(snd_ctl_elem_type_name(i));
+		o = PyUnicode_FromString(snd_ctl_elem_type_name(i));
 		PyList_Append(l1, o);
 		Py_DECREF(o);
 	}
@@ -1534,6 +1517,8 @@ initalsahcontrol(void)
 
 	if (PyErr_Occurred())
 		Py_FatalError("Cannot initialize module alsahcontrol");
+
+	return MOD_SUCCESS_VAL(module);
 }
 
 /*
@@ -1556,7 +1541,7 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 	tstate = PyThreadState_New(main_interpreter);
 	origstate = PyThreadState_Swap(tstate);
 
-	o = PyObject_GetAttr(pyhelem->callback, PyString_InternFromString("callback"));
+	o = PyObject_GetAttr(pyhelem->callback, InternFromString("callback"));
 	if (!o) {
 		PyErr_Clear();
 		o = pyhelem->callback;
@@ -1572,8 +1557,12 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 		Py_DECREF(t);
 			
 		if (r) {
-			if (PyInt_Check(r)) {
+			if (PyLong_Check(r)) {
+				res = PyLong_AsLong(r);
+#if PY_MAJOR_VERSION < 3
+			} else if (PyInt_Check(r)) {
 				res = PyInt_AsLong(r);
+#endif
 			} else if (r == Py_None) {
 				res = 0;
 			}

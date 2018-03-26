@@ -19,25 +19,10 @@
  *
  */
 
-#include "Python.h"
-#include "structmember.h"
-#include "frameobject.h"
-#ifndef PY_LONG_LONG
-  #define PY_LONG_LONG LONG_LONG
-#endif
+#include "common.h"
 #include "sys/poll.h"
 #include "stdlib.h"
 #include "alsa/asoundlib.h"
-
-#ifndef Py_RETURN_NONE
-#define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
-#endif
-#ifndef Py_RETURN_TRUE
-#define Py_RETURN_TRUE return Py_INCREF(Py_True), Py_True
-#endif
-#ifndef Py_RETURN_FALSE
-#define Py_RETURN_FALSE return Py_INCREF(Py_False), Py_False
-#endif
 
 static int element_callback(snd_mixer_elem_t *elem, unsigned int mask);
 
@@ -58,17 +43,6 @@ struct pyalsamixer {
 	PyObject_HEAD
 	snd_mixer_t *handle;
 };
-
-static inline PyObject *get_bool(int val)
-{
-	if (val) {
-		Py_INCREF(Py_True);
-		return Py_True;
-	} else {
-		Py_INCREF(Py_False);
-		return Py_False;
-	}
-}
 
 static PyObject *
 pyalsamixer_getcount(struct pyalsamixer *self, void *priv)
@@ -169,7 +143,7 @@ pyalsamixer_registerpoll(struct pyalsamixer *self, PyObject *args)
 	if (count <= 0)
 		Py_RETURN_NONE;
 	
-	reg = PyObject_GetAttr(pollObj, PyString_InternFromString("register"));
+	reg = PyObject_GetAttr(pollObj, InternFromString("register"));
 
 	for (i = 0; i < count; i++) {
 		t = PyTuple_New(2);
@@ -237,7 +211,7 @@ pyalsamixer_list(struct pyalsamixer *self, PyObject *args)
 		v = NULL;
 		if (elem) {
 			v = PyTuple_New(2);
-			PyTuple_SET_ITEM(v, 0, PyString_FromString(snd_mixer_selem_get_name(elem)));
+			PyTuple_SET_ITEM(v, 0, PyUnicode_FromString(snd_mixer_selem_get_name(elem)));
 			PyTuple_SET_ITEM(v, 1, PyInt_FromLong(snd_mixer_selem_get_index(elem)));
 		}
 		if (v == NULL || elem == NULL) {
@@ -281,8 +255,6 @@ pyalsamixer_dealloc(struct pyalsamixer *self)
 {
 	if (self->handle != NULL)
 		snd_mixer_close(self->handle);
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsamixer_getseters[] = {
@@ -305,7 +277,7 @@ static PyMethodDef pyalsamixer_methods[] = {
 };
 
 static PyTypeObject pyalsamixer_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsamixer.Mixer",
 	tp_basicsize:	sizeof(struct pyalsamixer),
 	tp_dealloc:	(destructor)pyalsamixer_dealloc,
@@ -337,7 +309,7 @@ struct pyalsamixerelement {
 static PyObject *
 pyalsamixerelement_getname(struct pyalsamixerelement *pyelem, void *priv)
 {
-	return PyString_FromString(snd_mixer_selem_get_name(pyelem->elem));
+	return PyUnicode_FromString(snd_mixer_selem_get_name(pyelem->elem));
 }
 
 static PyObject *
@@ -727,11 +699,8 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 			o = PyTuple_GetItem(t, i);
 			if (o == Py_None)
 				continue;
-			if (!PyInt_Check(o)) {
-				PyErr_Format(PyExc_RuntimeError, "Only None or Int types are expected!");
+			if (get_long(o, &val))
 				break;
-			}
-			val = PyInt_AsLong(o);
 			if (dir == 0)
 				res = snd_mixer_selem_set_playback_volume(pyelem->elem, i, val);
 			else
@@ -744,11 +713,8 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 			o = PyList_GetItem(t, i);
 			if (o == Py_None)
 				continue;
-			if (!PyInt_Check(o)) {
-				PyErr_Format(PyExc_RuntimeError, "Only None or Int types are expected!");
+			if (get_long(o, &val))
 				break;
-			}
-			val = PyInt_AsLong(o);
 			if (dir == 0)
 				res = snd_mixer_selem_set_playback_volume(pyelem->elem, i, val);
 			else
@@ -1162,8 +1128,6 @@ pyalsamixerelement_dealloc(struct pyalsamixerelement *self)
 	if (self->pyhandle) {
 		Py_XDECREF(self->pyhandle);
 	}
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsamixerelement_getseters[] = {
@@ -1219,7 +1183,7 @@ static PyMethodDef pyalsamixerelement_methods[] = {
 };
 
 static PyTypeObject pyalsamixerelement_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsamixer.Element",
 	tp_basicsize:	sizeof(struct pyalsamixerelement),
 	tp_dealloc:	(destructor)pyalsamixerelement_dealloc,
@@ -1241,27 +1205,29 @@ static PyMethodDef pyalsamixerparse_methods[] = {
 	{NULL}
 };
 
-PyMODINIT_FUNC
-initalsamixer(void)
+MOD_INIT(alsamixer)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
 
-	if (PyType_Ready(&pyalsamixer_type) < 0)
-		return;
-	if (PyType_Ready(&pyalsamixerelement_type) < 0)
-		return;
+	pyalsamixer_type.tp_free = PyObject_GC_Del;
+	pyalsamixerelement_type.tp_free = PyObject_GC_Del;
 
-	module = Py_InitModule3("alsamixer", pyalsamixerparse_methods, "libasound mixer wrapper");
+	if (PyType_Ready(&pyalsamixer_type) < 0)
+		return MOD_ERROR_VAL;
+	if (PyType_Ready(&pyalsamixerelement_type) < 0)
+		return MOD_ERROR_VAL;
+
+	MOD_DEF(module, "alsamixer", "libasound mixer wrapper", pyalsamixerparse_methods);
 	if (module == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 #if 0
 	buildin = PyImport_AddModule("__buildin__");
 	if (buildin == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	if (PyObject_SetAttrString(module, "__buildins__", buildin) < 0)
-		return;
+		return MOD_ERROR_VAL;
 #endif
 
 	Py_INCREF(&pyalsamixer_type);
@@ -1302,7 +1268,7 @@ initalsamixer(void)
 	l1 = PyList_New(0);
 
 	for (i = 0; i <= SND_MIXER_SCHN_LAST; i++) {
-		o = PyString_FromString(snd_mixer_selem_channel_name(i));
+		o = PyUnicode_FromString(snd_mixer_selem_channel_name(i));
 		PyList_Append(l1, o);
 		Py_DECREF(o);
 	}
@@ -1352,6 +1318,8 @@ initalsamixer(void)
 
 	if (PyErr_Occurred())
 		Py_FatalError("Cannot initialize module alsamixer");
+
+	return MOD_SUCCESS_VAL(module);
 }
 
 /*
@@ -1374,7 +1342,7 @@ static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 	tstate = PyThreadState_New(main_interpreter);
 	origstate = PyThreadState_Swap(tstate);
 
-	o = PyObject_GetAttr(pyelem->callback, PyString_InternFromString("callback"));
+	o = PyObject_GetAttr(pyelem->callback, InternFromString("callback"));
 	if (!o) {
 		PyErr_Clear();
 		o = pyelem->callback;
@@ -1390,9 +1358,15 @@ static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 		Py_DECREF(t);
 			
 		if (r) {
-			if (PyInt_Check(r)) {
+			if (PyLong_Check(r)) {
+				res = PyLong_AsLong(r);
+			}
+#if PY_MAJOR_VERSION < 3
+			else if (PyInt_Check(r)) {
 				res = PyInt_AsLong(r);
-			} else if (r == Py_None) {
+			}
+#endif
+			 else if (r == Py_None) {
 				res = 0;
 			}
 			Py_DECREF(r);

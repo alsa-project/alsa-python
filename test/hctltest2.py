@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 # -*- Python -*-
 
 import sys
@@ -22,8 +22,8 @@ def event_callback(element, events):
 
 	info = alsahcontrol.Info(element)
 	value = alsahcontrol.Value(element)
-	print 'CALLBACK (DEF)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index)
-	print '  ', value.get_tuple(info.type, info.count)
+	print('CALLBACK (DEF)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index))
+	print('  ', value.get_tuple(info.type, info.count))
 
 
 class MyElementEvent:
@@ -31,8 +31,8 @@ class MyElementEvent:
 	def callback(self, element, events):
 		info = alsahcontrol.Info(element)
 		value = alsahcontrol.Value(element)
-		print 'CALLBACK (CLASS)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index)
-		print '  ', value.get_tuple(info.type, info.count)
+		print('CALLBACK (CLASS)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index))
+		print('  ', value.get_tuple(info.type, info.count))
 
 hctl = alsahcontrol.HControl(mode=alsahcontrol.open_mode['NONBLOCK'])
 list = hctl.list()
@@ -46,18 +46,18 @@ try:
 except IOError:
 	pass
 hctl.element_new(alsahcontrol.element_type['INTEGER'],
-		nelementid, 2, 0, 100, 1)
+		 nelementid, 2, 0, 100, 1)
 hctl.element_unlock(nelementid)
 # handleEvents() must be here to update internal alsa-lib's element list
 hctl.handle_events()
 element3 = alsahcontrol.Element(hctl, nelementid)
 element3.set_callback(event_callback)
-print 'Watching (DEF): %s,%i' % (element1.name, element1.index)
-print 'Watching (CLASS): %s,%i' % (element2.name, element2.index)
-print 'Watching (DEF): %s,%i' % (element3.name, element3.index)
+print('Watching (DEF): %s,%i' % (element1.name, element1.index))
+print('Watching (CLASS): %s,%i' % (element2.name, element2.index))
+print('Watching (DEF): %s,%i' % (element3.name, element3.index))
 poller = select.poll()
 hctl.register_poll(poller)
 while True:
 	poller.poll()
-	print 'Poll OK!'
+	print('Poll OK!')
 	hctl.handle_events()

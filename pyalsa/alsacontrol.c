@@ -19,24 +19,13 @@
  *
  */
 
-#include "Python.h"
-#include "structmember.h"
-#include "frameobject.h"
-#ifndef PY_LONG_LONG
-  #define PY_LONG_LONG LONG_LONG
-#endif
+#include "common.h"
 #include "stdlib.h"
 #include "alsa/asoundlib.h"
 
-#ifndef Py_RETURN_NONE
-#define Py_RETURN_NONE return Py_INCREF(Py_None), Py_None
-#endif
-#ifndef Py_RETURN_TRUE
-#define Py_RETURN_TRUE return Py_INCREF(Py_True), Py_True
-#endif
-#ifndef Py_RETURN_FALSE
-#define Py_RETURN_FALSE return Py_INCREF(Py_False), Py_False
-#endif
+/*
+ *
+ */
 
 static PyObject *module;
 #if 0
@@ -47,24 +36,13 @@ static PyObject *buildin;
  *
  */
 
-#define PYCTL(v) (((v) == Py_None) ? NULL : \
-	((struct pyalsacontrol *)(v)))
+#define PYCTL(v) \
+	(((v) == Py_None) ? NULL : ((struct pyalsacontrol *)(v)))
 
 struct pyalsacontrol {
 	PyObject_HEAD
 	snd_ctl_t *handle;
 };
-
-static inline PyObject *get_bool(int val)
-{
-	if (val) {
-		Py_INCREF(Py_True);
-		return Py_True;
-	} else {
-		Py_INCREF(Py_False);
-		return Py_False;
-	}
-}
 
 PyDoc_STRVAR(cardinfo__doc__,
 "card_info() -- Return a dictionary with card specific information.");
@@ -84,13 +62,13 @@ pyalsacontrol_cardinfo(struct pyalsacontrol *self, PyObject *args)
 	}
 	d = PyDict_New();
 	if (d) {
-		PyDict_SetItem(d, PyString_FromString("card"), PyInt_FromLong(snd_ctl_card_info_get_card(info)));
-		PyDict_SetItem(d, PyString_FromString("id"), PyString_FromString(snd_ctl_card_info_get_id(info)));
-		PyDict_SetItem(d, PyString_FromString("driver"), PyString_FromString(snd_ctl_card_info_get_driver(info)));
-		PyDict_SetItem(d, PyString_FromString("name"), PyString_FromString(snd_ctl_card_info_get_driver(info)));
-		PyDict_SetItem(d, PyString_FromString("longname"), PyString_FromString(snd_ctl_card_info_get_longname(info)));
-		PyDict_SetItem(d, PyString_FromString("mixername"), PyString_FromString(snd_ctl_card_info_get_mixername(info)));
-		PyDict_SetItem(d, PyString_FromString("components"), PyString_FromString(snd_ctl_card_info_get_components(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("card"), PyInt_FromLong(snd_ctl_card_info_get_card(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("id"), PyUnicode_FromString(snd_ctl_card_info_get_id(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("driver"), PyUnicode_FromString(snd_ctl_card_info_get_driver(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("name"), PyUnicode_FromString(snd_ctl_card_info_get_driver(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("longname"), PyUnicode_FromString(snd_ctl_card_info_get_longname(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("mixername"), PyUnicode_FromString(snd_ctl_card_info_get_mixername(info)));
+		PyDict_SetItem(d, PyUnicode_FromString("components"), PyUnicode_FromString(snd_ctl_card_info_get_components(info)));
 	}
 	return d;
 }
@@ -180,8 +158,6 @@ pyalsacontrol_dealloc(struct pyalsacontrol *self)
 {
 	if (self->handle != NULL)
 		snd_ctl_close(self->handle);
-
-	self->ob_type->tp_free(self);
 }
 
 static PyGetSetDef pyalsacontrol_getseters[] = {
@@ -199,7 +175,7 @@ static PyMethodDef pyalsacontrol_methods[] = {
 };
 
 static PyTypeObject pyalsacontrol_type = {
-	PyObject_HEAD_INIT(0)
+	PyVarObject_HEAD_INIT(NULL, 0)
 	tp_name:	"alsacontrol.Control",
 	tp_basicsize:	sizeof(struct pyalsacontrol),
 	tp_dealloc:	(destructor)pyalsacontrol_dealloc,
@@ -221,25 +197,26 @@ static PyMethodDef pyalsacontrolparse_methods[] = {
 	{NULL}
 };
 
-PyMODINIT_FUNC
-initalsacontrol(void)
+MOD_INIT(alsacontrol)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
 
-	if (PyType_Ready(&pyalsacontrol_type) < 0)
-		return;
+	pyalsacontrol_type.tp_free = PyObject_GC_Del;
 
-	module = Py_InitModule3("alsacontrol", pyalsacontrolparse_methods, "libasound control wrapper");
+	if (PyType_Ready(&pyalsacontrol_type) < 0)
+		return MOD_ERROR_VAL;
+
+	MOD_DEF(module, "alsacontrol", "libasound control wrapper", pyalsacontrolparse_methods);
 	if (module == NULL)
-		return;
+		return MOD_ERROR_VAL;
 
 #if 0
 	buildin = PyImport_AddModule("__buildin__");
 	if (buildin == NULL)
-		return;
+		return MOD_ERROR_VAL;
 	if (PyObject_SetAttrString(module, "__buildins__", buildin) < 0)
-		return;
+		return MOD_ERROR_VAL;
 #endif
 
 	Py_INCREF(&pyalsacontrol_type);
@@ -273,7 +250,7 @@ initalsacontrol(void)
 	l1 = PyList_New(0);
 
 	for (i = 0; i <= SND_CTL_ELEM_IFACE_LAST; i++) {
-		o = PyString_FromString(snd_ctl_elem_iface_name(i));
+		o = PyUnicode_FromString(snd_ctl_elem_iface_name(i));
 		PyList_Append(l1, o);
 		Py_DECREF(o);
 	}
@@ -301,4 +278,6 @@ initalsacontrol(void)
 
 	if (PyErr_Occurred())
 		Py_FatalError("Cannot initialize module alsacontrol");
+
+	return MOD_SUCCESS_VAL(module);
 }

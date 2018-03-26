@@ -18,65 +18,19 @@
  *
  */
 
-#include "Python.h"
+#include "common.h"
 #include <alsa/asoundlib.h>
 #include <stdio.h>
 
+/*
+ *
+ */
 
-
-
-//////////////////////////////////////////////////////////////////////////////
-// some helper #define go here...
-//////////////////////////////////////////////////////////////////////////////
-
-/* temporal debug (will be deleted in last patch, promise!) */
-#if 1
+#if 0
 #define ddebug(x, args...) fprintf(stderr, x "\n",##args);
 #else
 #define ddebug(x, args...)
 #endif
-
-/* checks if passed argument is an integer and can't be deleted.
-   returns -1 if fails and raises TypeError or AttributeError. */
-#define SETCHECKPYINT(attr, val)				\
-  if (val == NULL) {						\
-    PyErr_SetString(PyExc_AttributeError,			\
-		    "attribute " attr " can't be deleted!");	\
-    return -1;							\
-  }								\
-  if (!PyInt_Check(val)) {					\
-    PyErr_SetString(PyExc_TypeError,				\
-		    "integer value expected for " attr);	\
-    return -1;							\
-  }
-
-/* checks if passed argument is a string and can't be deleted.
-   returns -1 if fails and raises TypeError or AttributeError. */
-#define SETCHECKPYSTR(attr, val)				\
-  if (val == NULL) {						\
-    PyErr_SetString(PyExc_AttributeError,			\
-		    "attribute " attr " can't be deleted!");	\
-    return -1;							\
-  }								\
-  if (!PyString_Check(val)) {					\
-    PyErr_SetString(PyExc_TypeError,				\
-		    "string value expected for " attr);		\
-    return -1;							\
-  }
-
-/* checks if passed argument is a list and can't be deleted.
-   returns -1 if fails and raises TypeError or AttributeError. */
-#define SETCHECKPYLIST(attr, val)				\
-  if (val == NULL) {						\
-    PyErr_SetString(PyExc_AttributeError,			\
-		    "attribute " attr " can't be deleted!");	\
-    return -1;							\
-  }								\
-  if (!PyList_Check(val)) {					\
-    PyErr_SetString(PyExc_TypeError,				\
-		    "list value expected for " attr);		\
-    return -1;							\
-  }
 
 /* frees only if pointer is not NULL. */
 #define FREECHECKED(name, pointer)		\
@@ -108,10 +62,10 @@
 #define TCONSTDICTADD(module, subtype, name)				\
   _dictPYALSASEQ_CONST_##subtype = PyDict_New();			\
   if (TDICT(subtype) == NULL) {						\
-    return;								\
+    return MOD_ERROR_VAL;						\
   }									\
   if (PyModule_AddObject(module, name, TDICT(subtype)) < 0) {		\
-    return;								\
+    return MOD_ERROR_VAL;						\
   }
 
 /* creates a typed constant and add it to the module and dictionary */
@@ -119,10 +73,10 @@
     PyObject *tmp =							\
       Constant_create(name, value, TTYPE(subtype));			\
     if (tmp == NULL) {							\
-      return;								\
+      return MOD_ERROR_VAL;						\
     }									\
     if (PyModule_AddObject(module, name, tmp) < 0) {			\
-      return;								\
+      return MOD_ERROR_VAL;						\
     }									\
     PyObject *key = PyInt_FromLong(value);				\
     PyDict_SetItem(TDICT(subtype), key, tmp);				\
@@ -161,13 +115,12 @@
   static PyObject *						\
   Constant_##name (PyObject *v, PyObject *w) {			\
     int type = 0;						\
-    long val = 0;						\
-    /* both have to be a int */					\
-    if (!PyInt_Check(v) || !PyInt_Check(w)) {			\
+    long val1, val2, val;					\
+    if (get_long1(v, &val1) || get_long1(w, &val2)) {		\
       Py_INCREF(Py_NotImplemented);				\
       return Py_NotImplemented;					\
     }								\
-    val = PyInt_AS_LONG(v) oper PyInt_AS_LONG(w);		\
+    val = val1 oper val2;					\
     /* always asume left will be the type */			\
     if (PyObject_TypeCheck(v, &ConstantType)) {			\
       type = ((ConstantObject *) v)->type;			\
@@ -183,12 +136,12 @@
   static PyObject *					\
   Constant_##name (PyObject *v) {			\
     int type = 0;					\
-    long val = 0;					\
-    if (!PyInt_Check(v)) {				\
+    long val1, val;					\
+    if (get_long1(v, &val1)) {				\
       Py_INCREF(Py_NotImplemented);			\
       return Py_NotImplemented;				\
     }							\
-    val = oper PyInt_AS_LONG(v);			\
+    val = oper val1;					\
     if (PyObject_TypeCheck(v, &ConstantType)) {		\
       type = ((ConstantObject *) v)->type;		\
     }							\
@@ -287,7 +240,7 @@
 #define SETDICT_EXT {					\
     snd_seq_ev_ext_t *data = &(event->data.ext);	\
     PyObject *list = PyList_New(data->len);		\
-    int i = 0;						\
+    unsigned i = 0;					\
     unsigned char *t = (unsigned char *) data->ptr;	\
     for (i = 0; i < data->len; i++) {			\
       PyList_SetItem(list, i, PyInt_FromLong(t[i]));	\
@@ -297,15 +250,14 @@
   }
 
 /* gets integer from python param */
-#define GETDICTINT(name, param) {					\
-    PyObject *value = PyDict_GetItemString(dict, name);			\
-    if (value != NULL) {						\
-      if (!PyInt_Check(value)) {					\
-	PyErr_SetString(PyExc_TypeError, name " must be a integer");	\
-	return NULL;							\
-      }									\
-      param = PyInt_AsLong(value);					\
-    }									\
+#define GETDICTINT(name, param) {				\
+    PyObject *value = PyDict_GetItemString(dict, name);		\
+    if (value != NULL) {					\
+      long val;                                                 \
+      if (get_long(value, &val))                                \
+        return NULL;                                            \
+      param = val;                                              \
+    }								\
   }
 
 /* gets float from python param */
@@ -343,9 +295,10 @@
       self->event->data.ext.len = len;					\
       if (len > 0) {							\
 	int i;								\
+	long val;							\
 	for (i = 0; i < len; i++) {					\
 	  PyObject *item = PyList_GetItem(list, i);			\
-	  if (!PyInt_Check(item)) {					\
+	  if (get_long1(item, &val)) {					\
 	    PyErr_SetString(PyExc_TypeError,				\
 			    name " must be a list of integers");	\
 	    self->event->data.ext.len = 0;				\
@@ -359,10 +312,8 @@
 	  self->event->data.ext.len = 0;				\
 	  return NULL;							\
 	}								\
-	for (i = 0; i < len; i++) {					\
-	  PyObject *item = PyList_GetItem(list, i);			\
-	  self->buff[i] = PyInt_AsLong(item);				\
-	}								\
+	for (i = 0; i < len; i++)					\
+	  self->buff[i] = val;						\
 	self->event->data.ext.ptr = self->buff;				\
       }									\
     }									\
@@ -474,7 +425,7 @@ Constant_create(const char *name, long value, int type) {
 /** alsaseq.Constant tp_repr */
 static PyObject *
 Constant_repr(ConstantObject *self) {
-  return PyString_FromFormat("%s(0x%x)",
+  return PyUnicode_FromFormat("%s(0x%x)",
 			     self->name,
 			     (unsigned int)self->value);
 }
@@ -482,7 +433,7 @@ Constant_repr(ConstantObject *self) {
 /** alsaseq.Constant tp_str */
 static PyObject *
 Constant_str(ConstantObject *self) {
-  return PyString_FromFormat("%s",
+  return PyUnicode_FromFormat("%s",
 			     self->name);
 }
 
@@ -506,14 +457,22 @@ static PyNumberMethods Constant_as_number = {
 
 /** alsaseq.Constant type */
 static PyTypeObject ConstantType = {
-  PyObject_HEAD_INIT(NULL)
+  PyVarObject_HEAD_INIT(NULL, 0)
   tp_name: "alsaseq.Constant",
+#if PY_MAJOR_VERSION < 3
   tp_base: &PyInt_Type,
+#else
+  tp_base: &PyLong_Type,
+#endif
   tp_basicsize: sizeof(ConstantObject),
   tp_flags:
+#if PY_MAJOR_VERSION < 3
   Py_TPFLAGS_HAVE_GETCHARBUFFER
   | Py_TPFLAGS_HAVE_CLASS
   | Py_TPFLAGS_CHECKTYPES,
+#else
+  0,
+#endif
   tp_doc: Constant__doc__,
   tp_as_number: &Constant_as_number,
   tp_free: PyObject_Del,
@@ -752,8 +711,6 @@ static void
 SeqEvent_dealloc(SeqEventObject *self) {
   FREECHECKED("event", self->event);
   FREECHECKED("buff", self->buff);
-
-  self->ob_type->tp_free(self);
 }
 
 /** alsaseq.SeqEvent type attribute: __doc__ */
@@ -775,9 +732,12 @@ SeqEvent_get_type(SeqEventObject *self) {
 static int
 SeqEvent_set_type(SeqEventObject *self,
 		  PyObject *val) {
-  SETCHECKPYINT("type", val);
+  long v;
 
-  return _SeqEvent_set_type(self, PyInt_AsLong(val));
+  if (get_long(val, &v))
+    return -1;
+
+  return _SeqEvent_set_type(self, v);
 }
 
 /** alsaseq.SeqEvent tag attribute: __doc__ */
@@ -799,9 +759,9 @@ SeqEvent_set_tag(SeqEventObject *self,
 		 PyObject *val) {
   long tag;
 
-  SETCHECKPYINT("tag", val);
+  if (get_long(val, &tag))
+    return -1;
 
-  tag = PyInt_AsLong(val);
   if (tag < 0 || tag > 255) {
     PyErr_Format(PyExc_ValueError,
 		 "invalid value '%ld'; allowed range: 0 - 255",
@@ -837,9 +797,12 @@ SeqEvent_get_timestamp(SeqEventObject *self) {
 static int
 SeqEvent_set_timestamp(SeqEventObject *self,
 		       PyObject *val) {
-  SETCHECKPYINT("timestamp", val);
+  long v;
 
-  return _SeqEvent_set_timestamp(self, PyInt_AsLong(val));
+  if (get_long(val, &v))
+    return -1;
+
+  return _SeqEvent_set_timestamp(self, v);
 }
 
 /** alsaseq.SeqEvent timemode attribute: __doc__ */
@@ -867,9 +830,12 @@ SeqEvent_get_timemode(SeqEventObject *self) {
 static int
 SeqEvent_set_timemode(SeqEventObject *self,
 		      PyObject *val) {
-  SETCHECKPYINT("timemode", val);
+  long v;
 
-  return _SeqEvent_set_timemode(self, PyInt_AsLong(val));
+  if (get_long(val, &v))
+    return -1;
+
+  return _SeqEvent_set_timemode(self, v);
 }
 
 /** alsaseq.SeqEvent queue attribute: __doc__ */
@@ -889,9 +855,12 @@ SeqEvent_get_queue(SeqEventObject *self) {
 static int
 SeqEvent_set_queue(SeqEventObject *self,
 		   PyObject *val) {
-  SETCHECKPYINT("queue", val);
+  long v;
 
-  self->event->queue = PyInt_AsLong(val);
+  if (get_long(val, &v))
+    return -1;
+
+  self->event->queue = v;
   return 0;
 }
 
@@ -926,8 +895,9 @@ SeqEvent_get_time(SeqEventObject *self) {
 static int
 SeqEvent_set_time(SeqEventObject *self,
 		  PyObject *val) {
-  int is_int = PyInt_Check(val);
-  int is_float = PyFloat_Check(val);
+  long lval = 0;
+  const int is_float = PyFloat_Check(val);
+  const int is_int = is_float ? 0 : get_long1(val, &lval);
 
   if (!(is_int || is_float)) {
     PyErr_Format(PyExc_TypeError,
@@ -937,7 +907,7 @@ SeqEvent_set_time(SeqEventObject *self,
 
   if (snd_seq_ev_is_real(self->event)) {
     if (is_int) {
-      double time = PyInt_AsLong(val);
+      double time = lval;
       self->event->time.time.tv_sec = time;
       self->event->time.time.tv_nsec = 0;
     } else {
@@ -948,7 +918,7 @@ SeqEvent_set_time(SeqEventObject *self,
     }
   } else if (snd_seq_ev_is_tick(self->event)) {
     if (is_int) {
-      self->event->time.tick = PyInt_AsLong(val);
+      self->event->time.tick = lval;
     } else {
       self->event->time.tick = PyFloat_AsDouble(val);
     }
@@ -989,21 +959,21 @@ SeqEvent_get_source(SeqEventObject *self) {
 static int
 SeqEvent_set_source(SeqEventObject *self,
 		    PyObject *val) {
-  PyObject *client;
-  PyObject *port;
+  long client;
+  long port;
 
   if (!PyTuple_Check(val) || PyTuple_Size(val) != 2) {
     PyErr_SetString(PyExc_TypeError, "expected tuple (client,port)");
     return -1;
   }
 
-  client = PyTuple_GetItem(val, 0);
-  port = PyTuple_GetItem(val, 1);
-  SETCHECKPYINT("source client", client);
-  SETCHECKPYINT("source port", port);
+  if (get_long(PyTuple_GetItem(val, 0), &client))
+    return -1;
+  if (get_long(PyTuple_GetItem(val, 1), &port))
+    return -1;
 
-  self->event->source.client = PyInt_AsLong(client);
-  self->event->source.port = PyInt_AsLong(port);
+  self->event->source.client = client;
+  self->event->source.port = port;
 
   return 0;
 }
@@ -1038,21 +1008,21 @@ SeqEvent_get_dest(SeqEventObject *self) {
 static int
 SeqEvent_set_dest(SeqEventObject *self,
 		  PyObject *val) {
-  PyObject *client;
-  PyObject *port;
+  long client;
+  long port;
 
   if (!PyTuple_Check(val) || PyTuple_Size(val) != 2) {
     PyErr_SetString(PyExc_TypeError, "expected tuple (client,port)");
     return -1;
   }
 
-  client = PyTuple_GetItem(val, 0);
-  port = PyTuple_GetItem(val, 1);
-  SETCHECKPYINT("dest client", client);
-  SETCHECKPYINT("dest port", port);
+  if (get_long(PyTuple_GetItem(val, 0), &client))
+    return -1;;
+  if (get_long(PyTuple_GetItem(val, 1), &port))
+    return -1;
 
-  self->event->dest.client = PyInt_AsLong(client);
-  self->event->dest.port = PyInt_AsLong(port);
+  self->event->dest.client = client;
+  self->event->dest.port = port;
 
   return 0;
 }
@@ -1771,7 +1741,7 @@ SeqEvent_repr(SeqEventObject *self) {
     dtime = self->event->time.tick;
   }
 
-  return PyString_FromFormat("<alsaseq.SeqEvent type=%s(%d) flags=%d tag=%d "
+  return PyUnicode_FromFormat("<alsaseq.SeqEvent type=%s(%d) flags=%d tag=%d "
 			     "queue=%d time=%s(%u.%u) from=%d:%d to=%d:%d "
 			     "at %p>",
 			     typestr,
@@ -1992,7 +1962,7 @@ static PyMethodDef SeqEvent_methods[] = {
 
 /** alsaseq.SeEvent type */
 static PyTypeObject SeqEventType = {
-  PyObject_HEAD_INIT(NULL)
+  PyVarObject_HEAD_INIT(NULL, 0)
   tp_name: "alsaseq.SeqEvent",
   tp_basicsize: sizeof(SeqEventObject),
   tp_dealloc: (destructor) SeqEvent_dealloc,
@@ -2129,8 +2099,6 @@ Sequencer_dealloc(SequencerObject *self) {
     snd_seq_close(self->handle);
     self->handle = NULL;
   }
-
-  self->ob_type->tp_free(self);
 }
 
 /** alsaseq.Sequencer name attribute: __doc__ */
@@ -2144,7 +2112,7 @@ PyDoc_STRVAR(Sequencer_name__doc__,
 /** alsaseq.Sequencer name attribute: tp_getset getter() */
 static PyObject *
 Sequencer_get_name(SequencerObject *self) {
-  return PyString_FromString(snd_seq_name(self->handle));
+  return PyUnicode_FromString(snd_seq_name(self->handle));
 }
 
 /** alsaseq.Sequencer clientname attribute: __doc__ */
@@ -2162,16 +2130,20 @@ Sequencer_get_clientname(SequencerObject *self) {
   snd_seq_client_info_alloca(&cinfo);
   snd_seq_get_client_info(self->handle, cinfo);
 
-  return PyString_FromString(snd_seq_client_info_get_name(cinfo));
+  return PyUnicode_FromString(snd_seq_client_info_get_name(cinfo));
 }
 
 /** alsaseq.Sequencer clientname attribute: tp_getset setter() */
 static int
 Sequencer_set_clientname(SequencerObject *self,
 			 PyObject *val) {
-  SETCHECKPYSTR("clientname", val);
+  char *s;
 
-  snd_seq_set_client_name(self->handle, PyString_AsString(val));
+  if (get_utf8_string(val, &s))
+    return -1;
+
+  snd_seq_set_client_name(self->handle, s);
+  free(s);
 
   return 0;
 }
@@ -2209,11 +2181,11 @@ static PyObject *Sequencer_get_mode(SequencerObject *self) {
 static int
 Sequencer_set_mode(SequencerObject *self,
 		   PyObject *val) {
-  int ret, mode;
+  int ret;
+  long mode;
 
-  SETCHECKPYINT("mode", val);
-
-  mode = (int) PyInt_AsLong(val);
+  if (get_long(val, &mode))
+    return -1;
 
   if (mode != 0 && mode != SND_SEQ_NONBLOCK) {
     PyErr_SetString(PyExc_ValueError, "Invalid value for mode.");
@@ -2286,7 +2258,7 @@ Sequencer_repr(SequencerObject *self) {
   snd_seq_client_info_alloca(&cinfo);
   snd_seq_get_client_info(self->handle, cinfo);
 
-  return PyString_FromFormat("<alsaseq.Sequencer name=%s client_id=%d "
+  return PyUnicode_FromFormat("<alsaseq.Sequencer name=%s client_id=%d "
 			     "clientname=%s streams=%d mode=%d at 0x%p>",
 			     snd_seq_name(self->handle),
 			     snd_seq_client_info_get_client(cinfo),
@@ -2440,7 +2412,7 @@ Sequencer_connection_list(SequencerObject *self,
     PyObject *tuple = PyTuple_New(3);
     PyObject *portlist = PyList_New(0);
 
-    name = PyString_FromFormat("%s", snd_seq_client_info_get_name(cinfo));
+    name = PyUnicode_FromFormat("%s", snd_seq_client_info_get_name(cinfo));
     client = PyInt_FromLong(snd_seq_client_info_get_client(cinfo));
     PyTuple_SetItem(tuple, 0, name);
     PyTuple_SetItem(tuple, 1, client);
@@ -2449,7 +2421,7 @@ Sequencer_connection_list(SequencerObject *self,
       /* create tuple for port info */
       PyObject *porttuple = PyTuple_New(3);
 
-      name = PyString_FromFormat("%s", snd_seq_port_info_get_name(pinfo));
+      name = PyUnicode_FromFormat("%s", snd_seq_port_info_get_name(pinfo));
       port = PyInt_FromLong(snd_seq_port_info_get_port(pinfo));
 
       PyTuple_SetItem(porttuple, 0, name);
@@ -3321,7 +3293,7 @@ static PyMethodDef Sequencer_methods[] = {
 
 /** alsaseq.Sequencer type */
 static PyTypeObject SequencerType = {
-  PyObject_HEAD_INIT(NULL)
+  PyVarObject_HEAD_INIT(NULL, 0)
   tp_name: "alsaseq.Sequencer",
   tp_basicsize: sizeof(SequencerObject),
   tp_dealloc: (destructor) Sequencer_dealloc,
@@ -3354,32 +3326,31 @@ static PyMethodDef alsaseq_methods[] = {
   { NULL },
 };
 
-PyMODINIT_FUNC
-initalsaseq(void) {
+MOD_INIT(alsaseq)
+{
   PyObject *module;
 
-  if (PyType_Ready(&ConstantType) < 0) {
-    return;
-  }
+  ConstantType.tp_free = PyObject_GC_Del;
+  SeqEventType.tp_free = PyObject_GC_Del;
+  SequencerType.tp_free = PyObject_GC_Del;
 
-  if (PyType_Ready(&SeqEventType) < 0) {
-    return;
-  }
+  if (PyType_Ready(&ConstantType) < 0)
+    return MOD_ERROR_VAL;
 
-  if (PyType_Ready(&SequencerType) < 0) {
-    return;
-  }
+  if (PyType_Ready(&SeqEventType) < 0)
+    return MOD_ERROR_VAL;
 
-  module = Py_InitModule3("alsaseq", alsaseq_methods, alsaseq__doc__);
+  if (PyType_Ready(&SequencerType) < 0)
+    return MOD_ERROR_VAL;
 
-  if (module == NULL) {
-    return;
-  }
+  MOD_DEF(module, "alsaseq", alsaseq__doc__, alsaseq_methods);
+
+  if (module == NULL)
+    return MOD_ERROR_VAL;
 
   SequencerError = PyErr_NewException("alsaseq.SequencerError", NULL, NULL);
-  if (SequencerError == NULL) {
-    return;
-  }
+  if (SequencerError == NULL)
+    return MOD_ERROR_VAL;
 
   Py_INCREF(SequencerError);
   PyModule_AddObject(module, "SequencerError", SequencerError);
@@ -3399,360 +3370,141 @@ initalsaseq(void) {
 			     SND_LIB_VERSION_STR);
 
   /* add Constant dictionaries to module */
-  TCONSTDICTADD(module, STREAMS,
-		"_dstreams");
-  TCONSTDICTADD(module, MODE,
-		"_dmode");
-  TCONSTDICTADD(module, QUEUE,
-		"_dqueue");
-  TCONSTDICTADD(module, CLIENT_TYPE,
-		"_dclienttype");
-  TCONSTDICTADD(module, PORT_CAP,
-		"_dportcap");
-  TCONSTDICTADD(module, PORT_TYPE,
-		"_dporttype");
-  TCONSTDICTADD(module, EVENT_TYPE,
-		"_deventtype");
-  TCONSTDICTADD(module, EVENT_TIMESTAMP,
-		"_deventtimestamp");
-  TCONSTDICTADD(module, EVENT_TIMEMODE,
-		"_deventtimemode");
-  TCONSTDICTADD(module, ADDR_CLIENT,
-		"_dclient");
-  TCONSTDICTADD(module, ADDR_PORT,
-		"_dport");
+  TCONSTDICTADD(module, STREAMS, "_dstreams");
+  TCONSTDICTADD(module, MODE, "_dmode");
+  TCONSTDICTADD(module, QUEUE, "_dqueue");
+  TCONSTDICTADD(module, CLIENT_TYPE, "_dclienttype");
+  TCONSTDICTADD(module, PORT_CAP, "_dportcap");
+  TCONSTDICTADD(module, PORT_TYPE, "_dporttype");
+  TCONSTDICTADD(module, EVENT_TYPE, "_deventtype");
+  TCONSTDICTADD(module, EVENT_TIMESTAMP, "_deventtimestamp");
+  TCONSTDICTADD(module, EVENT_TIMEMODE, "_deventtimemode");
+  TCONSTDICTADD(module, ADDR_CLIENT, "_dclient");
+  TCONSTDICTADD(module, ADDR_PORT, "_dport");
 
   /* Sequencer streams */
-  TCONSTADD(module, STREAMS,
-	    "SEQ_OPEN_OUTPUT",
-	    SND_SEQ_OPEN_OUTPUT);
-  TCONSTADD(module, STREAMS,
-	    "SEQ_OPEN_INPUT",
-	    SND_SEQ_OPEN_INPUT);
-  TCONSTADD(module, STREAMS,
-	    "SEQ_OPEN_DUPLEX",
-	    SND_SEQ_OPEN_DUPLEX);
+  TCONSTADD(module, STREAMS, "SEQ_OPEN_OUTPUT", SND_SEQ_OPEN_OUTPUT);
+  TCONSTADD(module, STREAMS, "SEQ_OPEN_INPUT", SND_SEQ_OPEN_INPUT);
+  TCONSTADD(module, STREAMS, "SEQ_OPEN_DUPLEX", SND_SEQ_OPEN_DUPLEX);
 
   /* Sequencer blocking mode */
-  TCONSTADD(module, MODE,
-	    "SEQ_BLOCK",
-	    0);
-  TCONSTADD(module, MODE,
-	    "SEQ_NONBLOCK",
-	    SND_SEQ_NONBLOCK);
+  TCONSTADD(module, MODE, "SEQ_BLOCK", 0);
+  TCONSTADD(module, MODE, "SEQ_NONBLOCK", SND_SEQ_NONBLOCK);
 
   /* Known queue id */
-  TCONSTADD(module, QUEUE,
-	    "SEQ_QUEUE_DIRECT",
-	    SND_SEQ_QUEUE_DIRECT);
+  TCONSTADD(module, QUEUE, "SEQ_QUEUE_DIRECT", SND_SEQ_QUEUE_DIRECT);
 
   /* client types */
-  TCONSTADD(module, CLIENT_TYPE,
-	    "SEQ_USER_CLIENT",
-	    SND_SEQ_USER_CLIENT);
-  TCONSTADD(module, CLIENT_TYPE,
-	    "SEQ_KERNEL_CLIENT",
-	    SND_SEQ_KERNEL_CLIENT);
+  TCONSTADD(module, CLIENT_TYPE, "SEQ_USER_CLIENT", SND_SEQ_USER_CLIENT);
+  TCONSTADD(module, CLIENT_TYPE, "SEQ_KERNEL_CLIENT", SND_SEQ_KERNEL_CLIENT);
 
   /* Sequencer port cap */
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_NONE",
-	    0);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_WRITE",
-	    SND_SEQ_PORT_CAP_WRITE);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_SYNC_WRITE",
-	    SND_SEQ_PORT_CAP_SYNC_WRITE);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_SYNC_READ",
-	    SND_SEQ_PORT_CAP_SYNC_READ);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_SUBS_WRITE",
-	    SND_SEQ_PORT_CAP_SUBS_WRITE);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_SUBS_READ",
-	    SND_SEQ_PORT_CAP_SUBS_READ);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_READ",
-	    SND_SEQ_PORT_CAP_READ);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_NO_EXPORT",
-	    SND_SEQ_PORT_CAP_NO_EXPORT);
-  TCONSTADD(module, PORT_CAP,
-	    "SEQ_PORT_CAP_DUPLEX",
-	    SND_SEQ_PORT_CAP_DUPLEX);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_NONE", 0);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_WRITE", SND_SEQ_PORT_CAP_WRITE);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_SYNC_WRITE", SND_SEQ_PORT_CAP_SYNC_WRITE);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_SYNC_READ", SND_SEQ_PORT_CAP_SYNC_READ);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_SUBS_WRITE", SND_SEQ_PORT_CAP_SUBS_WRITE);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_SUBS_READ", SND_SEQ_PORT_CAP_SUBS_READ);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_READ", SND_SEQ_PORT_CAP_READ);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_NO_EXPORT", SND_SEQ_PORT_CAP_NO_EXPORT);
+  TCONSTADD(module, PORT_CAP, "SEQ_PORT_CAP_DUPLEX", SND_SEQ_PORT_CAP_DUPLEX);
 
   /* Sequencer port type */
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_SYNTHESIZER",
-	    SND_SEQ_PORT_TYPE_SYNTHESIZER);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_SYNTH",
-	    SND_SEQ_PORT_TYPE_SYNTH);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_SPECIFIC",
-	    SND_SEQ_PORT_TYPE_SPECIFIC);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_SOFTWARE",
-	    SND_SEQ_PORT_TYPE_SOFTWARE);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_SAMPLE",
-	    SND_SEQ_PORT_TYPE_SAMPLE);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_PORT",
-	    SND_SEQ_PORT_TYPE_PORT);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_XG",
-	    SND_SEQ_PORT_TYPE_MIDI_XG);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_MT32",
-	    SND_SEQ_PORT_TYPE_MIDI_MT32);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_GS",
-	    SND_SEQ_PORT_TYPE_MIDI_GS);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_GM2",
-	    SND_SEQ_PORT_TYPE_MIDI_GM2);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_GM",
-	    SND_SEQ_PORT_TYPE_MIDI_GM);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_MIDI_GENERIC",
-	    SND_SEQ_PORT_TYPE_MIDI_GENERIC);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_HARDWARE",
-	    SND_SEQ_PORT_TYPE_HARDWARE);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_DIRECT_SAMPLE",
-	    SND_SEQ_PORT_TYPE_DIRECT_SAMPLE);
-  TCONSTADD(module, PORT_TYPE,
-	    "SEQ_PORT_TYPE_APPLICATION",
-	    SND_SEQ_PORT_TYPE_APPLICATION);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_SYNTHESIZER", SND_SEQ_PORT_TYPE_SYNTHESIZER);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_SYNTH", SND_SEQ_PORT_TYPE_SYNTH);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_SPECIFIC", SND_SEQ_PORT_TYPE_SPECIFIC);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_SOFTWARE", SND_SEQ_PORT_TYPE_SOFTWARE);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_SAMPLE", SND_SEQ_PORT_TYPE_SAMPLE);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_PORT", SND_SEQ_PORT_TYPE_PORT);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_XG", SND_SEQ_PORT_TYPE_MIDI_XG);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_MT32", SND_SEQ_PORT_TYPE_MIDI_MT32);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_GS", SND_SEQ_PORT_TYPE_MIDI_GS);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_GM2", SND_SEQ_PORT_TYPE_MIDI_GM2);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_GM", SND_SEQ_PORT_TYPE_MIDI_GM);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_MIDI_GENERIC", SND_SEQ_PORT_TYPE_MIDI_GENERIC);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_HARDWARE", SND_SEQ_PORT_TYPE_HARDWARE);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_DIRECT_SAMPLE", SND_SEQ_PORT_TYPE_DIRECT_SAMPLE);
+  TCONSTADD(module, PORT_TYPE, "SEQ_PORT_TYPE_APPLICATION", SND_SEQ_PORT_TYPE_APPLICATION);
 
   /* SeqEvent event type */
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SYSTEM",
-	    SND_SEQ_EVENT_SYSTEM);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_RESULT",
-	    SND_SEQ_EVENT_RESULT);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_NOTE",
-	    SND_SEQ_EVENT_NOTE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_NOTEON",
-	    SND_SEQ_EVENT_NOTEON);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_NOTEOFF",
-	    SND_SEQ_EVENT_NOTEOFF);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_KEYPRESS",
-	    SND_SEQ_EVENT_KEYPRESS);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CONTROLLER",
-	    SND_SEQ_EVENT_CONTROLLER);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PGMCHANGE",
-	    SND_SEQ_EVENT_PGMCHANGE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CHANPRESS",
-	    SND_SEQ_EVENT_CHANPRESS);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PITCHBEND",
-	    SND_SEQ_EVENT_PITCHBEND);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CONTROL14",
-	    SND_SEQ_EVENT_CONTROL14);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_NONREGPARAM",
-	    SND_SEQ_EVENT_NONREGPARAM);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_REGPARAM",
-	    SND_SEQ_EVENT_REGPARAM);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SONGPOS",
-	    SND_SEQ_EVENT_SONGPOS);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SONGSEL",
-	    SND_SEQ_EVENT_SONGSEL);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_QFRAME",
-	    SND_SEQ_EVENT_QFRAME);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_TIMESIGN",
-	    SND_SEQ_EVENT_TIMESIGN);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_KEYSIGN",
-	    SND_SEQ_EVENT_KEYSIGN);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_START",
-	    SND_SEQ_EVENT_START);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CONTINUE",
-	    SND_SEQ_EVENT_CONTINUE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_STOP",
-	    SND_SEQ_EVENT_STOP);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SETPOS_TICK",
-	    SND_SEQ_EVENT_SETPOS_TICK);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SETPOS_TIME",
-	    SND_SEQ_EVENT_SETPOS_TIME);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_TEMPO",
-	    SND_SEQ_EVENT_TEMPO);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CLOCK",
-	    SND_SEQ_EVENT_CLOCK);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_TICK",
-	    SND_SEQ_EVENT_TICK);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_QUEUE_SKEW",
-	    SND_SEQ_EVENT_QUEUE_SKEW);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SYNC_POS",
-	    SND_SEQ_EVENT_SYNC_POS);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_TUNE_REQUEST",
-	    SND_SEQ_EVENT_TUNE_REQUEST);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_RESET",
-	    SND_SEQ_EVENT_RESET);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SENSING",
-	    SND_SEQ_EVENT_SENSING);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_ECHO",
-	    SND_SEQ_EVENT_ECHO);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_OSS",
-	    SND_SEQ_EVENT_OSS);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CLIENT_START",
-	    SND_SEQ_EVENT_CLIENT_START);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CLIENT_EXIT",
-	    SND_SEQ_EVENT_CLIENT_EXIT);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_CLIENT_CHANGE",
-	    SND_SEQ_EVENT_CLIENT_CHANGE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PORT_START",
-	    SND_SEQ_EVENT_PORT_START);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PORT_EXIT",
-	    SND_SEQ_EVENT_PORT_EXIT);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PORT_CHANGE",
-	    SND_SEQ_EVENT_PORT_CHANGE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PORT_SUBSCRIBED",
-	    SND_SEQ_EVENT_PORT_SUBSCRIBED);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_PORT_UNSUBSCRIBED",
-	    SND_SEQ_EVENT_PORT_UNSUBSCRIBED);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR0",
-	    SND_SEQ_EVENT_USR0);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR1",
-	    SND_SEQ_EVENT_USR1);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR2",
-	    SND_SEQ_EVENT_USR2);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR3",
-	    SND_SEQ_EVENT_USR3);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR4",
-	    SND_SEQ_EVENT_USR4);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR5",
-	    SND_SEQ_EVENT_USR5);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR6",
-	    SND_SEQ_EVENT_USR6);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR7",
-	    SND_SEQ_EVENT_USR7);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR8",
-	    SND_SEQ_EVENT_USR8);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR9",
-	    SND_SEQ_EVENT_USR9);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_SYSEX",
-	    SND_SEQ_EVENT_SYSEX);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_BOUNCE",
-	    SND_SEQ_EVENT_BOUNCE);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR_VAR0",
-	    SND_SEQ_EVENT_USR_VAR0);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR_VAR1",
-	    SND_SEQ_EVENT_USR_VAR1);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR_VAR2",
-	    SND_SEQ_EVENT_USR_VAR2);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR_VAR3",
-	    SND_SEQ_EVENT_USR_VAR3);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_USR_VAR4",
-	    SND_SEQ_EVENT_USR_VAR4);
-  TCONSTADD(module, EVENT_TYPE,
-	    "SEQ_EVENT_NONE",
-	    SND_SEQ_EVENT_NONE);
-
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SYSTEM", SND_SEQ_EVENT_SYSTEM);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_RESULT", SND_SEQ_EVENT_RESULT);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_NOTE", SND_SEQ_EVENT_NOTE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_NOTEON", SND_SEQ_EVENT_NOTEON);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_NOTEOFF", SND_SEQ_EVENT_NOTEOFF);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_KEYPRESS", SND_SEQ_EVENT_KEYPRESS);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CONTROLLER", SND_SEQ_EVENT_CONTROLLER);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PGMCHANGE", SND_SEQ_EVENT_PGMCHANGE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CHANPRESS", SND_SEQ_EVENT_CHANPRESS);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PITCHBEND", SND_SEQ_EVENT_PITCHBEND);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CONTROL14", SND_SEQ_EVENT_CONTROL14);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_NONREGPARAM", SND_SEQ_EVENT_NONREGPARAM);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_REGPARAM", SND_SEQ_EVENT_REGPARAM);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SONGPOS", SND_SEQ_EVENT_SONGPOS);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SONGSEL", SND_SEQ_EVENT_SONGSEL);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_QFRAME", SND_SEQ_EVENT_QFRAME);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_TIMESIGN", SND_SEQ_EVENT_TIMESIGN);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_KEYSIGN", SND_SEQ_EVENT_KEYSIGN);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_START", SND_SEQ_EVENT_START);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CONTINUE", SND_SEQ_EVENT_CONTINUE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_STOP", SND_SEQ_EVENT_STOP);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SETPOS_TICK", SND_SEQ_EVENT_SETPOS_TICK);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SETPOS_TIME", SND_SEQ_EVENT_SETPOS_TIME);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_TEMPO", SND_SEQ_EVENT_TEMPO);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CLOCK", SND_SEQ_EVENT_CLOCK);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_TICK", SND_SEQ_EVENT_TICK);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_QUEUE_SKEW", SND_SEQ_EVENT_QUEUE_SKEW);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SYNC_POS", SND_SEQ_EVENT_SYNC_POS);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_TUNE_REQUEST", SND_SEQ_EVENT_TUNE_REQUEST);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_RESET", SND_SEQ_EVENT_RESET);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SENSING", SND_SEQ_EVENT_SENSING);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_ECHO", SND_SEQ_EVENT_ECHO);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_OSS", SND_SEQ_EVENT_OSS);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CLIENT_START", SND_SEQ_EVENT_CLIENT_START);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CLIENT_EXIT", SND_SEQ_EVENT_CLIENT_EXIT);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_CLIENT_CHANGE", SND_SEQ_EVENT_CLIENT_CHANGE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PORT_START", SND_SEQ_EVENT_PORT_START);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PORT_EXIT", SND_SEQ_EVENT_PORT_EXIT);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PORT_CHANGE", SND_SEQ_EVENT_PORT_CHANGE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PORT_SUBSCRIBED", SND_SEQ_EVENT_PORT_SUBSCRIBED);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_PORT_UNSUBSCRIBED", SND_SEQ_EVENT_PORT_UNSUBSCRIBED);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR0", SND_SEQ_EVENT_USR0);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR1", SND_SEQ_EVENT_USR1);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR2", SND_SEQ_EVENT_USR2);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR3", SND_SEQ_EVENT_USR3);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR4", SND_SEQ_EVENT_USR4);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR5", SND_SEQ_EVENT_USR5);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR6", SND_SEQ_EVENT_USR6);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR7", SND_SEQ_EVENT_USR7);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR8", SND_SEQ_EVENT_USR8);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR9", SND_SEQ_EVENT_USR9);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_SYSEX", SND_SEQ_EVENT_SYSEX);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_BOUNCE", SND_SEQ_EVENT_BOUNCE);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR_VAR0", SND_SEQ_EVENT_USR_VAR0);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR_VAR1", SND_SEQ_EVENT_USR_VAR1);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR_VAR2", SND_SEQ_EVENT_USR_VAR2);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR_VAR3", SND_SEQ_EVENT_USR_VAR3);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_USR_VAR4", SND_SEQ_EVENT_USR_VAR4);
+  TCONSTADD(module, EVENT_TYPE, "SEQ_EVENT_NONE", SND_SEQ_EVENT_NONE);
 
   /* SeqEvent event timestamp flags */
-  TCONSTADD(module, EVENT_TIMESTAMP,
-	    "SEQ_TIME_STAMP_TICK",
-	    SND_SEQ_TIME_STAMP_TICK);
-  TCONSTADD(module, EVENT_TIMESTAMP,
-	    "SEQ_TIME_STAMP_REAL",
-	    SND_SEQ_TIME_STAMP_REAL);
+  TCONSTADD(module, EVENT_TIMESTAMP, "SEQ_TIME_STAMP_TICK", SND_SEQ_TIME_STAMP_TICK);
+  TCONSTADD(module, EVENT_TIMESTAMP, "SEQ_TIME_STAMP_REAL", SND_SEQ_TIME_STAMP_REAL);
 
   /* SeqEvent event timemode flags */
-  TCONSTADD(module, EVENT_TIMEMODE,
-	    "SEQ_TIME_MODE_ABS",
-	    SND_SEQ_TIME_MODE_ABS);
-  TCONSTADD(module, EVENT_TIMEMODE,
-	    "SEQ_TIME_MODE_REL",
-	    SND_SEQ_TIME_MODE_REL);
+  TCONSTADD(module, EVENT_TIMEMODE, "SEQ_TIME_MODE_ABS", SND_SEQ_TIME_MODE_ABS);
+  TCONSTADD(module, EVENT_TIMEMODE, "SEQ_TIME_MODE_REL", SND_SEQ_TIME_MODE_REL);
 
   /* SeqEvent event addresses */
-  TCONSTADD(module, ADDR_CLIENT,
-	    "SEQ_CLIENT_SYSTEM",
-	    SND_SEQ_CLIENT_SYSTEM);
-  TCONSTADD(module, ADDR_CLIENT,
-	    "SEQ_ADDRESS_BROADCAST",
-	    SND_SEQ_ADDRESS_BROADCAST);
-  TCONSTADD(module, ADDR_CLIENT,
-	    "SEQ_ADDRESS_SUBSCRIBERS",
-	    SND_SEQ_ADDRESS_SUBSCRIBERS);
-  TCONSTADD(module, ADDR_CLIENT,
-	    "SEQ_ADDRESS_UNKNOWN",
-	    SND_SEQ_ADDRESS_UNKNOWN);
-  TCONSTADD(module, ADDR_PORT,
-	    "SEQ_PORT_SYSTEM_TIMER",
-	    SND_SEQ_PORT_SYSTEM_TIMER);
-  TCONSTADD(module, ADDR_PORT,
-	    "SEQ_PORT_SYSTEM_ANNOUNCE",
-	    SND_SEQ_PORT_SYSTEM_ANNOUNCE);
-  TCONSTADD(module, ADDR_PORT,
-	    "SEQ_ADDRESS_BROADCAST",
-	    SND_SEQ_ADDRESS_BROADCAST);
-  TCONSTADD(module, ADDR_PORT,
-	    "SEQ_ADDRESS_SUBSCRIBERS",
-	    SND_SEQ_ADDRESS_SUBSCRIBERS);
-  TCONSTADD(module, ADDR_PORT,
-	    "SEQ_ADDRESS_UNKNOWN",
-	    SND_SEQ_ADDRESS_UNKNOWN);
+  TCONSTADD(module, ADDR_CLIENT, "SEQ_CLIENT_SYSTEM", SND_SEQ_CLIENT_SYSTEM);
+  TCONSTADD(module, ADDR_CLIENT, "SEQ_ADDRESS_BROADCAST", SND_SEQ_ADDRESS_BROADCAST);
+  TCONSTADD(module, ADDR_CLIENT, "SEQ_ADDRESS_SUBSCRIBERS", SND_SEQ_ADDRESS_SUBSCRIBERS);
+  TCONSTADD(module, ADDR_CLIENT, "SEQ_ADDRESS_UNKNOWN", SND_SEQ_ADDRESS_UNKNOWN);
+  TCONSTADD(module, ADDR_PORT, "SEQ_PORT_SYSTEM_TIMER", SND_SEQ_PORT_SYSTEM_TIMER);
+  TCONSTADD(module, ADDR_PORT, "SEQ_PORT_SYSTEM_ANNOUNCE", SND_SEQ_PORT_SYSTEM_ANNOUNCE);
+  TCONSTADD(module, ADDR_PORT, "SEQ_ADDRESS_BROADCAST", SND_SEQ_ADDRESS_BROADCAST);
+  TCONSTADD(module, ADDR_PORT, "SEQ_ADDRESS_SUBSCRIBERS", SND_SEQ_ADDRESS_SUBSCRIBERS);
+  TCONSTADD(module, ADDR_PORT, "SEQ_ADDRESS_UNKNOWN", SND_SEQ_ADDRESS_UNKNOWN);
 
+  return MOD_SUCCESS_VAL(module);
 }

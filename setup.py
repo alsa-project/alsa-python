@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 # -*- Python -*-
 
 import os
@@ -59,19 +59,31 @@ setup(
     scripts=[]
 )
 
+SOFILES = [
+'alsacard',
+'alsacontrol',
+'alsahcontrol',
+'alsamixer',
+'alsaseq'
+]
+
 uname = os.uname()
-a = 'build/lib.%s-%s-%s' % (uname[0].lower(), uname[4], sys.version[:3])
-for f in ['alsacard.so', 'alsacontrol.so', 'alsahcontrol.so',
-          'alsamixer.so', 'alsaseq.so']:
-  if not os.path.exists('pyalsa/%s' % f):
-    a = '../build/lib.%s-%s-%s/pyalsa/%s' % \
-                    (uname[0].lower(), uname[4], sys.version[:3], f)
-    print a, f
-    p = 'pyalsa/' + f
-    try:
-      st = os.lstat(p)
-      if stat.S_ISLNK(st.st_mode):
-        os.remove(p)
-    except:
-      pass
-    os.symlink(a, 'pyalsa/%s' % f)
+dir = 'build/lib.%s-%s-%s/pyalsa' % (uname[0].lower(), uname[4], sys.version[:3])
+files = os.listdir(dir)
+for f in SOFILES:
+  path = ''
+  for f2 in files:
+    if f2.startswith(f + '.') and f2.endswith('.so'):
+      path = dir + '/' + f2
+      break
+  if not path or not os.path.exists(path):
+    continue
+  p = 'pyalsa/%s.so' % f
+  print("%s -> %s" % (p, path))
+  try:
+    st = os.lstat(p)
+    if stat.S_ISLNK(st.st_mode):
+      os.remove(p)
+  except:
+    pass
+  os.symlink('../' + path, 'pyalsa/%s.so' % f)

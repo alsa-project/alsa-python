@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 # -*- Python -*-
 
 import sys
@@ -23,7 +23,7 @@ def info(element):
 		extra = ''
 		if a == 'type':
 			extra = ' (%s)' % alsahcontrol.element_type_name[info.type]
-		print '  %s: %s%s' % (a, getattr(info, a), extra)
+		print('  %s: %s%s' % (a, getattr(info, a), extra))
 
 def value(element):
 	info = alsahcontrol.Info(element)
@@ -31,39 +31,39 @@ def value(element):
 	for a in dir(value):
 		if a.startswith('__'):
 			continue
-		print '  %s: %s' % (a, getattr(value, a))
+		print('  %s: %s' % (a, getattr(value, a)))
 	values = value.get_tuple(info.type, info.count)
-	print '  Values: ', values
+	print('  Values:', values)
 	value.set_tuple(info.type, values)
 	value.read()
 	if info.is_writable:
 		value.write()
 
-print 'interface_id:'
-print '  ', alsahcontrol.interface_id
-print 'interface_name:'
-print '  ', alsahcontrol.interface_name
-print 'element_type:'
-print '  ', alsahcontrol.element_type
-print 'element_type_name:'
-print '  ', alsahcontrol.element_type_name
-print 'event_class:'
-print '  ', alsahcontrol.event_class
-print 'event_mask:'
-print '  ', alsahcontrol.event_mask
-print 'event_mask_remove:', alsahcontrol.event_mask_remove
-print '  ', alsahcontrol.open_mode
-print 'event_mask_remove:', alsahcontrol.open_mode
+print('interface_id:')
+print('  ', alsahcontrol.interface_id)
+print('interface_name:')
+print('  ', alsahcontrol.interface_name)
+print('element_type:')
+print('  ', alsahcontrol.element_type)
+print('element_type_name:')
+print('  ', alsahcontrol.element_type_name)
+print('event_class:')
+print('  ', alsahcontrol.event_class)
+print('event_mask:')
+print('  ', alsahcontrol.event_mask)
+print('event_mask_remove:', alsahcontrol.event_mask_remove)
+print('  ', alsahcontrol.open_mode)
+print('event_mask_remove:', alsahcontrol.open_mode)
 
 hctl = alsahcontrol.HControl()
-print 'Count: ', hctl.count
+print('Count: ', hctl.count)
 list = hctl.list()
-print 'List:'
-print list
+print('List:')
+print(list)
 for l in list:
-	print '*****'
+	print('*****')
 	element1 = alsahcontrol.Element(hctl, l[1:])
 	info(element1)
-	print '-----'
+	print('-----')
 	value(element1)
 del hctl
