@@ -119,9 +119,9 @@ static inline int get_utf8_string(PyObject *o, char **str)
 static inline PyObject *InternFromString(const char *name)
 {
 #if PY_MAJOR_VERSION < 3
-	return PyString_InternFromString("register");
+	return PyString_InternFromString(name);
 #else
-	return PyUnicode_InternFromString("register");
+	return PyUnicode_InternFromString(name);
 #endif
 }
 
