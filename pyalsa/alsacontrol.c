@@ -158,6 +158,7 @@ pyalsacontrol_dealloc(struct pyalsacontrol *self)
 {
 	if (self->handle != NULL)
 		snd_ctl_close(self->handle);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsacontrol_getseters[] = {
@@ -201,8 +202,6 @@ MOD_INIT(alsacontrol)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
-
-	pyalsacontrol_type.tp_free = PyObject_GC_Del;
 
 	if (PyType_Ready(&pyalsacontrol_type) < 0)
 		return MOD_ERROR_VAL;

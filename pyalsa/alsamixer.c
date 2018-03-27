@@ -255,6 +255,7 @@ pyalsamixer_dealloc(struct pyalsamixer *self)
 {
 	if (self->handle != NULL)
 		snd_mixer_close(self->handle);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsamixer_getseters[] = {
@@ -1125,9 +1126,8 @@ pyalsamixerelement_dealloc(struct pyalsamixerelement *self)
 		Py_XDECREF(self->callback);
 		snd_mixer_elem_set_callback(self->elem, NULL);
 	}
-	if (self->pyhandle) {
-		Py_XDECREF(self->pyhandle);
-	}
+	Py_XDECREF(self->pyhandle);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsamixerelement_getseters[] = {
@@ -1209,9 +1209,6 @@ MOD_INIT(alsamixer)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
-
-	pyalsamixer_type.tp_free = PyObject_GC_Del;
-	pyalsamixerelement_type.tp_free = PyObject_GC_Del;
 
 	if (PyType_Ready(&pyalsamixer_type) < 0)
 		return MOD_ERROR_VAL;

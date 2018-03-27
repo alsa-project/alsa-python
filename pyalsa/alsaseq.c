@@ -711,6 +711,7 @@ static void
 SeqEvent_dealloc(SeqEventObject *self) {
   FREECHECKED("event", self->event);
   FREECHECKED("buff", self->buff);
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /** alsaseq.SeqEvent type attribute: __doc__ */
@@ -2099,6 +2100,7 @@ Sequencer_dealloc(SequencerObject *self) {
     snd_seq_close(self->handle);
     self->handle = NULL;
   }
+  Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 /** alsaseq.Sequencer name attribute: __doc__ */
@@ -3329,9 +3331,6 @@ static PyMethodDef alsaseq_methods[] = {
 MOD_INIT(alsaseq)
 {
   PyObject *module;
-
-  SeqEventType.tp_free = PyObject_GC_Del;
-  SequencerType.tp_free = PyObject_GC_Del;
 
   if (PyType_Ready(&ConstantType) < 0)
     return MOD_ERROR_VAL;

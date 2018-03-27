@@ -397,6 +397,7 @@ pyalsahcontrol_dealloc(struct pyalsahcontrol *self)
 {
 	if (self->handle != NULL)
 		snd_hctl_close(self->handle);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsahcontrol_getseters[] = {
@@ -620,12 +621,11 @@ static void
 pyalsahcontrolelement_dealloc(struct pyalsahcontrolelement *self)
 {
 	if (self->elem) {
-		Py_XDECREF(self->callback);
+		Py_DECREF(self->callback);
 		snd_hctl_elem_set_callback(self->elem, NULL);
 	}
-	if (self->pyhandle) {
-		Py_XDECREF(self->pyhandle);
-	}
+	Py_XDECREF(self->pyhandle);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsahcontrolelement_getseters[] = {
@@ -855,9 +855,8 @@ pyalsahcontrolinfo_dealloc(struct pyalsahcontrolinfo *self)
 {
 	if (self->info)
 		snd_ctl_elem_info_free(self->info);
-	if (self->pyelem) {
-		Py_XDECREF(self->pyelem);
-	}
+	Py_XDECREF(self->pyelem);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsahcontrolinfo_getseters[] = {
@@ -1289,9 +1288,8 @@ pyalsahcontrolvalue_dealloc(struct pyalsahcontrolvalue *self)
 {
 	if (self->value)
 		snd_ctl_elem_value_free(self->value);
-	if (self->pyelem) {
-		Py_XDECREF(self->pyelem);
-	}
+	Py_XDECREF(self->pyelem);
+	Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyGetSetDef pyalsahcontrolvalue_getseters[] = {
@@ -1350,11 +1348,6 @@ MOD_INIT(alsahcontrol)
 {
 	PyObject *d, *d1, *l1, *o;
 	int i;
-
-	pyalsahcontrol_type.tp_free = PyObject_GC_Del;
-	pyalsahcontrolelement_type.tp_free = PyObject_GC_Del;
-	pyalsahcontrolinfo_type.tp_free = PyObject_GC_Del;
-	pyalsahcontrolvalue_type.tp_free = PyObject_GC_Del;
 
 	if (PyType_Ready(&pyalsahcontrol_type) < 0)
 		return MOD_ERROR_VAL;
