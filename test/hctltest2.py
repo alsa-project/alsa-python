@@ -34,7 +34,7 @@ class MyElementEvent:
 		print('CALLBACK (CLASS)! [%s] %s:%i' % (parse_event_mask(events), element.name, element.index))
 		print('  ', value.get_tuple(info.type, info.count))
 
-hctl = alsahcontrol.HControl(mode=alsahcontrol.open_mode['NONBLOCK'])
+hctl = alsahcontrol.HControl(name='hw:0', mode=alsahcontrol.open_mode['NONBLOCK'])
 list = hctl.list()
 element1 = alsahcontrol.Element(hctl, list[0][1:])
 element1.set_callback(event_callback)
