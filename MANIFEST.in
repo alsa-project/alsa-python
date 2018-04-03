@@ -1,2 +1,3 @@
+include pyalsa/*.h
 include test/*.py
 include utils/*.py
