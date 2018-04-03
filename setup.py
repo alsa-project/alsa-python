@@ -69,7 +69,7 @@ SOFILES = [
 
 uname = os.uname()
 dir = 'build/lib.%s-%s-%s/pyalsa' % (uname[0].lower(), uname[4], sys.version[:3])
-files = os.listdir(dir)
+files = os.path.exists(dir) and os.listdir(dir) or []
 for f in SOFILES:
   path = ''
   for f2 in files:
