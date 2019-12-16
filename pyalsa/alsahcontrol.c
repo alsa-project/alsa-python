@@ -621,7 +621,7 @@ static void
 pyalsahcontrolelement_dealloc(struct pyalsahcontrolelement *self)
 {
 	if (self->elem) {
-		Py_DECREF(self->callback);
+		Py_XDECREF(self->callback);
 		snd_hctl_elem_set_callback(self->elem, NULL);
 	}
 	Py_XDECREF(self->pyhandle);
