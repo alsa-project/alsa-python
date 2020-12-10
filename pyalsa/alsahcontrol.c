@@ -1543,8 +1543,8 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 
 	t = PyTuple_New(2);
 	if (t) {
-		if (PyTuple_SET_ITEM(t, 0, (PyObject *)pyhelem))
-			Py_INCREF(pyhelem);
+		PyTuple_SET_ITEM(t, 0, (PyObject *)pyhelem);
+		Py_INCREF(pyhelem);
 		PyTuple_SET_ITEM(t, 1, PyInt_FromLong(mask));
 		r = PyObject_CallObject(o, t);
 		Py_DECREF(t);

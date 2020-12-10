@@ -1348,8 +1348,8 @@ static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 
 	t = PyTuple_New(2);
 	if (t) {
-		if (PyTuple_SET_ITEM(t, 0, (PyObject *)pyelem))
-			Py_INCREF(pyelem);
+		PyTuple_SET_ITEM(t, 0, (PyObject *)pyelem);
+		Py_INCREF(pyelem);
 		PyTuple_SET_ITEM(t, 1, PyInt_FromLong(mask));
 		r = PyObject_CallObject(o, t);
 		Py_DECREF(t);
