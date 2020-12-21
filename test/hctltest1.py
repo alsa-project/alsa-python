@@ -34,7 +34,10 @@ def value(element):
 		print('  %s: %s' % (a, getattr(value, a)))
 	values = value.get_tuple(info.type, info.count)
 	print('  Values:', values)
-	value.set_tuple(info.type, values)
+	try:
+		value.set_tuple(info.type, values)
+	except Exception as e:
+		print("EXCEPTION",e)
 	value.read()
 	if info.is_writable:
 		value.write()
@@ -61,9 +64,10 @@ list = hctl.list()
 print('List:')
 print(list)
 for l in list:
-	print('*****')
+	print('A*****')
 	element1 = alsahcontrol.Element(hctl, l[1:])
 	info(element1)
 	print('-----')
 	value(element1)
 del hctl
+print('TEST completed normally')
