@@ -251,6 +251,13 @@
       int len = PyList_Size(list);					\
       self->event->data.ext.len = len;					\
       if (len > 0) {							\
+	self->buff = malloc(len);					\
+	if (self->buff == NULL) {					\
+	  PyErr_SetString(PyExc_TypeError,				\
+			name " no memory");				\
+	  self->event->data.ext.len = 0;				\
+	  return NULL;							\
+	}								\
 	int i;								\
 	long val;							\
 	for (i = 0; i < len; i++) {					\
@@ -259,18 +266,12 @@
 	    PyErr_SetString(PyExc_TypeError,				\
 			    name " must be a list of integers");	\
 	    self->event->data.ext.len = 0;				\
-            return NULL;						\
+	    free(self->buff);                   			\
+	    self->buff = NULL;                   			\
+	    return NULL;						\
 	  }								\
-	}								\
-	self->buff = malloc(len);					\
-	if (self->buff == NULL) {					\
-	  PyErr_SetString(PyExc_TypeError,				\
-			name " no memory");				\
-	  self->event->data.ext.len = 0;				\
-	  return NULL;							\
-	}								\
-	for (i = 0; i < len; i++)					\
 	  self->buff[i] = val;						\
+	}								\
 	self->event->data.ext.ptr = self->buff;				\
       }									\
     }									\
