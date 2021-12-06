@@ -9,7 +9,7 @@ try:
 except ImportError:
   from distutils.core import setup, Extension
 
-VERSION='1.1.6'
+VERSION='1.2.6'
 
 if os.path.exists("version"):
   fp = open("version", "r")
