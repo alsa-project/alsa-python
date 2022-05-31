@@ -2,10 +2,10 @@
 # -*- Python -*-
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 del sys
 import select
-import alsahcontrol
+from pyalsa import alsahcontrol
 
 def parse_event_mask(events):
 	if events == 0:

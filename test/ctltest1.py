@@ -2,9 +2,9 @@
 # -*- Python -*-
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 del sys
-import alsacontrol
+from pyalsa import alsacontrol
 
 ctl = alsacontrol.Control()
 print('Card info:', ctl.card_info())

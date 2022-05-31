@@ -2,10 +2,10 @@
 # -*- Python -*-
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 del sys
 from alsamemdebug import debuginit, debug, debugdone
-import alsamixer
+from pyalsa import alsamixer
 
 def print_elem(e):
 	direction = ["playback", "capture"]

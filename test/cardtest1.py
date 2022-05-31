@@ -2,9 +2,9 @@
 # -*- Python -*-
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 del sys
-import alsacard
+from pyalsa import alsacard
 
 print('asoundlibVersion:', alsacard.asoundlib_version())
 print('cardLoad:', alsacard.card_load(0))

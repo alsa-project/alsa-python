@@ -1677,16 +1677,11 @@ static PyGetSetDef SeqEvent_getset[] = {
 static PyObject *
 SeqEvent_repr(SeqEventObject *self) {
   PyObject *key = PyInt_FromLong(self->event->type);
-  ConstantObject *constObject = (ConstantObject *)
-    PyDict_GetItem(TDICT(EVENT_TYPE), key);
-  const char *typestr = "UNKNOWN";
+  ConstantObject *typeObject = (ConstantObject *)PyDict_GetItem(TDICT(EVENT_TYPE), key);
   const char *timemode = "";
   unsigned int dtime = 0;
   unsigned int ntime = 0;
   Py_DECREF(key);
-  if (constObject != NULL) {
-    typestr = constObject->extra.name;
-  }
 
   if (snd_seq_ev_is_real(self->event)) {
     timemode = "real";
@@ -1697,17 +1692,18 @@ SeqEvent_repr(SeqEventObject *self) {
     dtime = self->event->time.tick;
   }
 
-  return PyUnicode_FromFormat("<alsaseq.SeqEvent type=%s(%d) flags=%d tag=%d "
+  return PyUnicode_FromFormat("<alsaseq.SeqEvent type=%S(%d) flags=%d tag=%d "
 			     "queue=%d time=%s(%u.%u) from=%d:%d to=%d:%d "
 			     "at %p>",
-			     typestr,
+			     typeObject,
 			     self->event->type, self->event->flags,
 			     self->event->tag, self->event->queue,
 			     timemode, dtime, ntime,
 			     (self->event->source).client,
 			     (self->event->source).port,
 			     (self->event->dest).client,
-			     (self->event->dest).port, self);
+			     (self->event->dest).port,
+			     self);
 }
 
 /** alsaseq.SeqEvent get_data() method: __doc__ */

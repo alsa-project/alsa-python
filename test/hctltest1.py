@@ -2,9 +2,9 @@
 # -*- Python -*-
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 del sys
-import alsahcontrol
+from pyalsa import alsahcontrol
 
 def info(element):
 	info = alsahcontrol.Info(element)

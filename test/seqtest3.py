@@ -8,9 +8,9 @@
 # sequencer application.
 
 import sys
-sys.path.insert(0, '../pyalsa')
+sys.path.insert(0, '..')
 
-from alsaseq import *
+from pyalsa.alsaseq import *
 import time
 from alsamemdebug import debuginit, debug, debugdone
 
@@ -28,9 +28,9 @@ def findmidiport():
             type = pinfo['type']
             caps = pinfo['capability']
             if type & SEQ_PORT_TYPE_MIDI_GENERIC and caps & (SEQ_PORT_CAP_WRITE):
-                print "Using port: %s:%s" % (cname, pname)
+                print("Using port: %s:%s" % (cname, pname))
                 return (cid, pid)
-    print "No midi port found -- install timidity or other software synth for testing!"
+    print("No midi port found -- install timidity or other software synth for testing!")
     sys.exit(0)
 
 # create sequencer
@@ -43,7 +43,7 @@ cid, pid = findmidiport()
 queue = seq.create_queue()
 seq.start_queue(queue)
 tempo, ppq = seq.queue_tempo(queue)
-print "tempo: %d ppq: %d" % (tempo, ppq)
+print("tempo: %d ppq: %d" % (tempo, ppq))
 
 # play notes: DO RE MI FA SOL LA
 notes = [0x40, 0x42, 0x44, 0x45, 0x47, 0x49]
@@ -53,7 +53,7 @@ for note in notes:
     event.queue = queue
     event.time += ppq
     event.set_data({'note.note' : note, 'note.velocity' : 64, 'note.duration' : ppq , 'note.off_velocity' : 64})
-    print 'event: %s %s' % (event, event.get_data())
+    print('event: %s %s' % (event, event.get_data()))
     seq.output_event(event)
     seq.drain_output()
     seq.sync_output_queue()
