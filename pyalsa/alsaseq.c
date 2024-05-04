@@ -353,18 +353,11 @@ typedef struct {
 } ConstantObject;
 
 #if PY_MAJOR_VERSION < 3
-/* PyInt is fixed size in Python 2 */
 # define CONST_VALUE(x) PyInt_AsLong((PyObject *)x)
-# define CONST_EXTRA(x) (&(x->extra))
 #else
-/* PyLong is variable size in Python 3 */
 # define CONST_VALUE(x) PyLong_AsLong((PyObject *)x)
-# define CONST_EXTRA(x) \
-    ((ConstantExtraFields *)( \
-        ((intptr_t)(&x->extra)) \
-        + abs(Py_SIZE(&x->base)) * Py_TYPE(x)->tp_itemsize \
-    ))
 #endif
+# define CONST_EXTRA(x) (&(x->extra))
 
 /** alsaseq.Constant type (initialized later...) */
 static PyTypeObject ConstantType;
