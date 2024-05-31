@@ -29,7 +29,7 @@ setup(
   description="Python binding for the ALSA library.",
   url="http://www.alsa-project.org",
   download_url="ftp://ftp.alsa-project.org/pub/pyalsa/",
-  licence="LGPLv2+",
+  license="LGPLv2+",
   author="The ALSA Team",
   author_email='alsa-devel@alsa-project.org',
   ext_modules=[
