@@ -68,6 +68,31 @@
 /*
  *
  */
+#if PY_MAJOR_VERSION >= 3
+  #define CALLBACK_VARIABLES \
+	PyGILState_STATE __gstate
+  #define CALLBACK_INIT \
+	__gstate = PyGILState_Ensure()
+  #define CALLBACK_DONE \
+	PyGILState_Release(__gstate)
+#else
+  #define CALLBACK_VARIABLES \
+	PyThreadState *__tstate, *__origstate
+  #define CALLBACK_INIT \
+	do { \
+		__tstate = PyThreadState_New(main_interpreter); \
+		__origstate = PyThreadState_Swap(__tstate); \
+	} while (0)
+  #define CALLBACK_DONE \
+	do { \
+		PyThreadState_Swap(origstate); \
+		PyThreadState_Delete(tstate); \
+	} while (0)
+#endif
+
+/*
+ *
+ */
 
 static inline PyObject *get_bool(int val)
 {
