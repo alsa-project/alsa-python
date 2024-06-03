@@ -71,8 +71,13 @@ SOFILES = [
   'alsaseq'
 ]
 
+if sys.argv[1] != 'build':
+  sys.exit(0)
 uname = os.uname()
-dir = 'build/lib.%s-%s-%s/pyalsa' % (uname[0].lower(), uname[4], sys.version[:3])
+if sys.version_info < (3, 0):
+  dir = 'build/lib.%s-%s-%s/pyalsa' % (uname[0].lower(), uname[4], sys.version[:3])
+else:
+  dir = 'build/lib.%s-%s-cpython-%s%s/pyalsa' % (uname[0].lower(), uname[4], sys.version_info.major, sys.version_info.minor)
 files = os.path.exists(dir) and os.listdir(dir) or []
 for f in SOFILES:
   path = ''
