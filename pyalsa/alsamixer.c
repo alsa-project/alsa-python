@@ -1325,10 +1325,10 @@ MOD_INIT(alsamixer)
 
 static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 {
-	PyThreadState *tstate, *origstate;
 	struct pyalsamixerelement *pyelem;
 	PyObject *o, *t, *r;
 	int res = 0, inside = 1;
+	CALLBACK_VARIABLES;
 
 	if (elem == NULL)
 		return -EINVAL;
@@ -1336,8 +1336,7 @@ static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 	if (pyelem == NULL || pyelem->callback == NULL)
 		return -EINVAL;
 
-	tstate = PyThreadState_New(main_interpreter);
-	origstate = PyThreadState_Swap(tstate);
+	CALLBACK_INIT;
 
 	o = PyObject_GetAttr(pyelem->callback, InternFromString("callback"));
 	if (!o) {
@@ -1377,8 +1376,7 @@ static int element_callback(snd_mixer_elem_t *elem, unsigned int mask)
 		Py_DECREF(o);
 	}
 
-	PyThreadState_Swap(origstate);
-	PyThreadState_Delete(tstate);
+	CALLBACK_DONE;
 
 	return res;
 }

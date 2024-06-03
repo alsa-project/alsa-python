@@ -1520,10 +1520,10 @@ MOD_INIT(alsahcontrol)
 
 static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 {
-	PyThreadState *tstate, *origstate;
 	struct pyalsahcontrolelement *pyhelem;
 	PyObject *o, *t, *r;
 	int res = 0, inside = 1;
+	CALLBACK_VARIABLES;
 
 	if (elem == NULL)
 		return -EINVAL;
@@ -1531,8 +1531,7 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 	if (pyhelem == NULL || pyhelem->callback == NULL)
 		return -EINVAL;
 
-	tstate = PyThreadState_New(main_interpreter);
-	origstate = PyThreadState_Swap(tstate);
+	CALLBACK_INIT;
 
 	o = PyObject_GetAttr(pyhelem->callback, InternFromString("callback"));
 	if (!o) {
@@ -1570,8 +1569,7 @@ static int element_callback(snd_hctl_elem_t *elem, unsigned int mask)
 		Py_DECREF(o);
 	}
 
-	PyThreadState_Swap(origstate);
-	PyThreadState_Delete(tstate);
+	CALLBACK_DONE;
 
 	return res;
 }
