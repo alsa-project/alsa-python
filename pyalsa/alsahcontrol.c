@@ -1203,6 +1203,7 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			len = (Py_ssize_t)sizeof(iec958->dig_subframe);
 		str = PyBytes_AsString(v);
 		memcpy(iec958->dig_subframe, str, (size_t)len);
+		snd_ctl_elem_value_set_iec958(self->value, iec958);
 		free(iec958);
 		break;
 	      err1:
