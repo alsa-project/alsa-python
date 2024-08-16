@@ -32,6 +32,8 @@ def value(element):
 		if a.startswith('__'):
 			continue
 		print('  %s: %s' % (a, getattr(value, a)))
+	if info.count == 0:
+		return
 	values = value.get_tuple(info.type, info.count)
 	print('  Values:', values)
 	value.set_tuple(info.type, values)
