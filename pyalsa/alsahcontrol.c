@@ -1052,13 +1052,13 @@ pyalsahcontrolvalue_get1(struct pyalsahcontrolvalue *self, PyObject *args, int l
 		}
 		snd_ctl_elem_value_get_iec958(self->value, iec958);
 		if (!list) {
-			PyTuple_SET_ITEM(t, 0, PyUnicode_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
-			PyTuple_SET_ITEM(t, 1, PyUnicode_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
-			PyTuple_SET_ITEM(t, 2, PyUnicode_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyTuple_SET_ITEM(t, 0, PyBytes_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyTuple_SET_ITEM(t, 1, PyBytes_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyTuple_SET_ITEM(t, 2, PyBytes_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		} else {
-			PyList_SetItem(t, 0, PyUnicode_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
-			PyList_SetItem(t, 1, PyUnicode_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
-			PyList_SetItem(t, 2, PyUnicode_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
+			PyList_SetItem(t, 0, PyBytes_FromStringAndSize((char *)iec958->status, sizeof(iec958->status)));
+			PyList_SetItem(t, 1, PyBytes_FromStringAndSize((char *)iec958->subcode, sizeof(iec958->subcode)));
+			PyList_SetItem(t, 2, PyBytes_FromStringAndSize((char *)iec958->dig_subframe, sizeof(iec958->dig_subframe)));
 		}
 		free(iec958);
 		break;
@@ -1176,30 +1176,33 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			Py_DECREF(t);
 			Py_RETURN_NONE;
 		}
-		len = 0;
 		v = !list ? PyTuple_GET_ITEM(t, 0) : PyList_GetItem(t, 0);
 		Py_INCREF(v);
-		if (PyBytes_AsStringAndSize(v, &str, &len))
+		if (!PyBytes_Check(v))
 			goto err1;
+		len = PyBytes_Size(v);
 		if (len > (Py_ssize_t)sizeof(iec958->status))
-			len = sizeof(iec958->status);
-		memcpy(iec958->status, str, len);
-		len = 0;
+			len = (Py_ssize_t)sizeof(iec958->status);
+		str = PyBytes_AsString(v);
+		memcpy(iec958->status, str, (size_t)len);
 		v = !list ? PyTuple_GET_ITEM(t, 1) : PyList_GetItem(t, 1);
 		Py_INCREF(v);
-		if (PyBytes_AsStringAndSize(v, &str, &len))
+		if (!PyBytes_Check(v))
 			goto err1;
+		len = PyBytes_Size(v);
 		if (len > (Py_ssize_t)sizeof(iec958->subcode))
-			len = sizeof(iec958->subcode);
-		memcpy(iec958->subcode, str, len);
-		len = 0;
+			len = (Py_ssize_t)sizeof(iec958->subcode);
+		str = PyBytes_AsString(v);
+		memcpy(iec958->subcode, str, (size_t)len);
 		v = !list ? PyTuple_GET_ITEM(t, 2) : PyList_GetItem(t, 2);
 		Py_INCREF(v);
-		if (PyBytes_AsStringAndSize(v, &str, &len))
+		if (!PyBytes_Check(v))
 			goto err1;
+		len = PyBytes_Size(v);
 		if (len > (Py_ssize_t)sizeof(iec958->dig_subframe))
-			len = sizeof(iec958->dig_subframe);
-		memcpy(iec958->dig_subframe, str, len);
+			len = (Py_ssize_t)sizeof(iec958->dig_subframe);
+		str = PyBytes_AsString(v);
+		memcpy(iec958->dig_subframe, str, (size_t)len);
 		free(iec958);
 		break;
 	      err1:
