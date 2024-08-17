@@ -25,7 +25,7 @@
 import os, pickle, urllib.request, urllib.parse, urllib.error, sys
 from pyparsing import *
 from html.entities import entitydefs
-from htmllib import HTMLParser
+from html.parser import HTMLParser
 from formatter import AbstractFormatter, DumbWriter
 
 # cache dir (preparsed source and HTML asoundlib API)
@@ -114,29 +114,24 @@ class AsoundlibAPIHTMLParser(HTMLParser):
     HTML asoundlib API from the alsa website.
     """
     
-    HTMLParser.entitydefs['nbsp'] = ' '
-    
     def __init__(self, name, data):
-        f = AbstractFormatter(DumbWriter(open(name, 'w'), 100))
-        HTMLParser.__init__(self, f)
+        self.f = AbstractFormatter(DumbWriter(open(name, 'w'), 100))
+        HTMLParser.__init__(self)
         self.feed(data)
         self.close()
 
-    def start_h1(self, attrs):
-        HTMLParser.start_h1(self, attrs)
-        self.handle_data("--- titlestart")
-        self.do_br(None)
+    def handle_data(self, data):
+        self.f.add_literal_data(data)
 
-    def start_table(self, attrs):
-        if len(attrs) == 1 and attrs[0] == ("class", "memname"):
-            self.handle_data("--- itemstart")
-            self.do_br(None)
-
-    def start_tr(self, attrs):
-        self.do_br(None)
-
-    def anchor_end(self):
-        pass
+    def handle_starttag(self, tag, attrs):
+        if tag == "div":
+            if len(attrs) == 1 and attrs[0] == ("class", "title"):
+                self.handle_data("\n--- titlestart\n")
+            if len(attrs) == 1 and attrs[0] == ("class", "ingroups"):
+                self.handle_data("\n\n")
+        elif tag == 'table':
+            if len(attrs) == 1 and attrs[0] == ("class", "memname"):
+                self.handle_data("\n--- itemstart")
 
 def parse_asoundlib_api(lines):
     """
@@ -154,7 +149,8 @@ def parse_asoundlib_api(lines):
     comment = ""
     enumsublist = []
     for line in lines:
-        line = line[:-1]
+        # convert &nbsp; to space
+        line = line[:-1].replace('\xa0', ' ')
         if False:
             if id(current) == id(defines):
                 print("defines   ", end=' ')
@@ -168,7 +164,7 @@ def parse_asoundlib_api(lines):
                 print("          ", end=' ')
             print("%s %d %s" % (id(current), state, line))
 
-        if line.startswith('Define Documentation'):
+        if line.startswith('Macro Definition Documentation'):
             current = defines
             state = 0
         elif line.startswith('Typedef Documentation'):
@@ -185,36 +181,42 @@ def parse_asoundlib_api(lines):
         elif line.startswith('--- titlestart'):
             state = 5
         elif state == 5:
-            title = line
+            title = line.strip()
             state = 0
         elif current == None:
             continue
         elif state == 1:
             if line == "":
+                name = ' '.join(name.split())
                 state = 2
             else:
                 name += line
-        elif state == 2:
+        elif state == 2 and line != "":
+            comment = line.strip()
             if id(current) == id(enums):
                 state = 3
             else:
-                comment = line
                 current.append((name, comment))
                 name = ""
                 comment = ""
                 state = 0
-        elif state == 3 and line.startswith('Enumerator:'):
+        elif state == 3 and line.startswith('Enumerator'):
+            enum, subcomment = line[10:].split(' ', 1)
+            enumsublist = [(enum.strip(), subcomment.strip())]
+            linewasempty = False
             state = 4
-            enumsublist = []
         elif state == 4:
-            if line == "":
+            if linewasempty and line == "":
                 current.append((name, comment, enumsublist))
                 name = ""
                 comment = ""
                 state = 0
+            elif line == "":
+                linewasempty = True
             else:
                 enum, subcomment = line.split(' ', 1)
-                enumsublist.append((enum, subcomment))
+                enumsublist.append((enum.strip(), subcomment.strip()))
+                linewasempty = False
 
     return (title, defines, typedefs, enums, functions)
         
@@ -353,7 +355,7 @@ def print_api_coverage(urls, look_constant, look_usage, excludes):
                 name = names[-1]
                 if ')' in name:
                     names = d[0].split('(')
-                    name = names[-2].split()[-1]
+                    name = names[-2].removesuffix(') ').removeprefix('* ')
                 print_name(d[0], d[1], name, look_constant, look_usage, el)
             print_stat(title, "Typedefs")
             print("\n"*2)
