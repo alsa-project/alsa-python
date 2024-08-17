@@ -72,7 +72,7 @@ def get_cached_parse(index_parser_list, name):
             if os.stat(source[2]).st_mtime > os.stat(name).st_mtime:
                 modified = True
         if not modified:
-            return pickle.load(open(name))
+            return pickle.load(open(name, "rb"))
 
     print("generating cache, file: %s" % name, end=' ')
     dict = {}
