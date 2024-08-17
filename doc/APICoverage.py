@@ -22,9 +22,9 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
-import os, pickle, urllib, sys
+import os, pickle, urllib.request, urllib.parse, urllib.error, sys
 from pyparsing import *
-from htmlentitydefs import entitydefs
+from html.entities import entitydefs
 from htmllib import HTMLParser
 from formatter import AbstractFormatter, DumbWriter
 
@@ -40,7 +40,7 @@ summary_total = summary_miss = summary_exc = 0
 count_total = count_miss = count_exc = 0
 
 if not os.path.exists(cache):
-    print "Creating cache dir: %s" % cache
+    print("Creating cache dir: %s" % cache)
     os.makedirs(cache)
 
 def read_source(name):
@@ -74,10 +74,10 @@ def get_cached_parse(index_parser_list, name):
         if not modified:
             return pickle.load(open(name))
 
-    print "generating cache, file: %s" % name,
+    print("generating cache, file: %s" % name, end=' ')
     dict = {}
     for source, parser in index_parser_list:
-        print source[0],
+        print(source[0], end=' ')
         sys.stdout.flush()
         list = []
         for tokenlist, start, end in parser.scanString(source[1]):
@@ -85,7 +85,7 @@ def get_cached_parse(index_parser_list, name):
             list.append((tlist, int(start), int(end)))
         dict[source[0]] = list
     pickle.dump(dict, open(name, "wb"))
-    print
+    print()
     return dict
 
 # API html parsing/caching
@@ -100,8 +100,8 @@ def get_cached_api(url, name):
     if os.path.exists(name):
         data = "".join(open(name).readlines())
     else:
-        print "downloading %s" % url
-        data = urllib.urlopen(url).read()
+        print("downloading %s" % url)
+        data = urllib.request.urlopen(url).read()
         open(name, "w").write(data)
     return data
 
@@ -156,16 +156,16 @@ def parse_asoundlib_api(lines):
         line = line[:-1]
         if False:
             if id(current) == id(defines):
-                print "defines   ",
+                print("defines   ", end=' ')
             elif id(current) == id(typedefs):
-                print "typedefs  ",
+                print("typedefs  ", end=' ')
             elif id(current) == id(enums):
-                print "enums     ",
+                print("enums     ", end=' ')
             elif id(current) == id(functions):
-                print "functions ",
+                print("functions ", end=' ')
             else:
-                print "          ",
-            print "%s %d %s" % (id(current), state, line)
+                print("          ", end=' ')
+            print("%s %d %s" % (id(current), state, line))
 
         if line.startswith('Define Documentation'):
             current = defines
@@ -253,8 +253,8 @@ def print_name(d0, d1, name, look_constant, look_usage, exclude_list):
     else:
         used = "%s" % usecount
         
-    print "%-4s%s" % (used, d0)
-    print "%8s%s" % ("", d1)
+    print("%-4s%s" % (used, d0))
+    print("%8s%s" % ("", d1))
 
     if usecount > 0:
         excstr = "Comment"
@@ -262,13 +262,13 @@ def print_name(d0, d1, name, look_constant, look_usage, exclude_list):
         excstr = "Excluded"
     for token, comment in exclude_list:
         if token == name:
-            print "%10s==> %11s: %s" % ("", excstr, comment)
+            print("%10s==> %11s: %s" % ("", excstr, comment))
     for s in lc:
-        print "%10s=> As constant: %s" % ("", s)
+        print("%10s=> As constant: %s" % ("", s))
     for s in uc:
-        print "%10s=> Used in    : %s" % ("", s)
+        print("%10s=> Used in    : %s" % ("", s))
     if used == "N/A":
-        print " "*10 + "**** NOT AVAILABLE/USED %s ****" % name
+        print(" "*10 + "**** NOT AVAILABLE/USED %s ****" % name)
 
 
 def _print_stat(title, section, missing, excluded, total):
@@ -283,9 +283,9 @@ def _print_stat(title, section, missing, excluded, total):
         fmissing = "%3.0f%%" % fmissing
         fexcluded = "%3.0f%%" % fexcluded
         fcovered = "%3.0f%%" % fcovered
-    print "STAT %-30.30s %-12.12s: " % (title, section) + \
+    print("STAT %-30.30s %-12.12s: " % (title, section) + \
         "%3d missing (%4s) %3d excluded (%4s) of %3d total (%4s covered)." % \
-        (missing, fmissing, excluded, fexcluded, total, fcovered)
+        (missing, fmissing, excluded, fexcluded, total, fcovered))
 
 
 def print_stat(title, section):
@@ -329,24 +329,24 @@ def print_api_coverage(urls, look_constant, look_usage, excludes):
         AsoundlibAPIHTMLParser(tmp, data)
         (title, defines, typedefs, enums, functions) = \
             parse_asoundlib_api(open(tmp).readlines())
-        print title
-        print "="*len(title)
-        print "\n"*2
+        print(title)
+        print("="*len(title))
+        print("\n"*2)
         #print "%s\n%s\n%s\n%s\n%s\n\n" % \
         #    (title, defines, typedefs, enums, functions)
         summary_total = 0
         summary_miss = 0
         if len(defines) > 0:
-            print "Defines"
-            print "-------"
+            print("Defines")
+            print("-------")
             for d in defines:
                 name = d[0].split(' ')[1]
                 print_name(d[0], d[1], name, look_constant, look_usage, el)
             print_stat(title, "Defines")
-            print "\n"*2
+            print("\n"*2)
         if len(typedefs) > 0:
-            print "Typedefs"
-            print "--------"
+            print("Typedefs")
+            print("--------")
             for d in typedefs:
                 names = d[0].split(' ')
                 name = names[-1]
@@ -355,20 +355,20 @@ def print_api_coverage(urls, look_constant, look_usage, excludes):
                     name = names[-2].split()[-1]
                 print_name(d[0], d[1], name, look_constant, look_usage, el)
             print_stat(title, "Typedefs")
-            print "\n"*2
+            print("\n"*2)
         if len(enums) > 0:
-            print "Enumerations"
-            print "------------"
+            print("Enumerations")
+            print("------------")
             for e in enums:
-                print "%s" % e[0]
+                print("%s" % e[0])
                 for d in e[2]:
                     name = d[0]
                     print_name(d[0], d[1], name, look_constant, look_usage, el)
             print_stat(title, "Enumerations")
-            print "\n"*2
+            print("\n"*2)
         if len(functions) > 0:
-            print "Functions"
-            print "---------"
+            print("Functions")
+            print("---------")
             for d in functions:
                 name = None
                 for n in d[0].split(' '):
@@ -379,7 +379,7 @@ def print_api_coverage(urls, look_constant, look_usage, excludes):
                 if name != None:
                     print_name(d[0], d[1], name, look_constant, look_usage, el)
             print_stat(title, "Functions")
-            print "\n"*2
+            print("\n"*2)
         print_summary_stat(title)
-        print "\n"*4
+        print("\n"*4)
 

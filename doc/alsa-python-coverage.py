@@ -229,7 +229,7 @@ def look_usage(name):
             rs = tokens[0]
             if rs == name:
                 list.append(start)
-        if dict.has_key(file):
+        if file in dict:
             dict[file].extend(list)
         else:
             dict[file] = list
@@ -237,7 +237,7 @@ def look_usage(name):
     nlist = []
     for file in dict:
         for lstart in dict[file]:
-            if not index.has_key(file):
+            if file not in index:
                 continue
             found = None
             previous = None
@@ -314,7 +314,7 @@ snd_seq_query_subscribe_sizeof currently not used
 """
 
 
-print """
+print("""
 *******************************
 PYALSA/ASOUNDLIB COVERAGE/USAGE
 *******************************
@@ -342,7 +342,7 @@ Notes:
 
 
 
-"""
+""")
 
 
 print_api_coverage(urls, look_constant, look_usage, comments)
@@ -351,7 +351,7 @@ print_api_coverage(urls, look_constant, look_usage, comments)
 time_end = time.time()
 time_diff = time_end - time_start
 
-print """%s
+print("""%s
 Generated for ALSA project by alsa-python-coverage.py %s
 %s UTC (%s@%s %3.3f seconds).
 """ % ("-"*72,
@@ -360,5 +360,5 @@ Generated for ALSA project by alsa-python-coverage.py %s
        os.getlogin(),
        os.uname()[1],
        time_diff
-       )
-print
+       ))
+print()
