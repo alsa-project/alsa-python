@@ -101,7 +101,8 @@ def get_cached_api(url, name):
         data = "".join(open(name).readlines())
     else:
         print("downloading %s" % url)
-        data = urllib.request.urlopen(url).read()
+        # The ALSA project API web pages use UTF-8
+        data = str(urllib.request.urlopen(url).read().decode('utf-8'))
         open(name, "w").write(data)
     return data
 
