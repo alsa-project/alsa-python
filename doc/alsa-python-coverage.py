@@ -338,7 +338,7 @@ Notes:
   * EXC if the item is excluded (will not be used/implemented)
 * The next line is the one-liner documentation.
 * Following lines are usage/definition until next item.
-* There are lines that summaries the coverage, they start with '^STAT'.
+* There are lines that summarizes the coverage, they start with '^STAT'.
 
 
 
