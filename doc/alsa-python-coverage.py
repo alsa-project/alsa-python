@@ -28,6 +28,7 @@ from APICoverage import *
 import APICoverage
 from pprint import pprint
 import time
+import getpass
 
 __author__ = "Aldrin Martoq <amartoq@dcc.uchile.cl>"
 __version__ = "1.0"
@@ -357,7 +358,7 @@ Generated for ALSA project by alsa-python-coverage.py %s
 """ % ("-"*72,
        __version__,
        time.asctime(time.gmtime(time_start)), 
-       os.getlogin(),
+       getpass.getuser(),
        os.uname()[1],
        time_diff
        ))
