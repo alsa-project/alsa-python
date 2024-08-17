@@ -56,11 +56,11 @@ function_define_block = \
 #    + Group(("(" + args + Optional("...") + ")") | "{")
 
 # common asoundlib parser
-snd_ = Regex("snd_[\w_]+")
-SND_ = Regex("SND_[\w_]+")
+snd_ = Regex("snd_[\\w_]+")
+SND_ = Regex("SND_[\\w_]+")
 
 # pyalsa/alsaseq.c parser
-alsaseq_SEQ = Regex("SEQ_[\w_]+")
+alsaseq_SEQ = Regex('SEQ_[\\w_]+')
 alsaseq_Constant = \
     "TCONSTADD(module," + alsaseq_SEQ + "," + quotedString + "," + alsaseq_SEQ
 alsaseq_typedef = \
