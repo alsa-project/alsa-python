@@ -847,7 +847,7 @@ SeqEvent_set_time(SeqEventObject *self,
 		  PyObject *val) {
   long lval = 0;
   const int is_float = PyFloat_Check(val);
-  const int is_int = is_float ? 0 : get_long1(val, &lval);
+  const int is_int = is_float ? 0 : !get_long1(val, &lval);
 
   if (!(is_int || is_float)) {
     PyErr_Format(PyExc_TypeError,
