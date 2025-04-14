@@ -980,7 +980,7 @@ pyalsamixerelement_getvolumedb(struct pyalsamixerelement *pyelem, PyObject *args
 		 PyErr_Format(PyExc_RuntimeError, "Cannot get mixer volume in dB (capture=%s, channel=%i): %s", dir ? "True" : "False", chn, snd_strerror(-res));
 		 Py_RETURN_NONE;
 	}
-	return Py_BuildValue("i", res);
+	return Py_BuildValue("i", val);
 }
 
 PyDoc_STRVAR(setvolumedb__doc__,
