@@ -724,7 +724,6 @@ pyalsamixerelement_setvolumetuple(struct pyalsamixerelement *pyelem, PyObject *a
 				 PyErr_Format(PyExc_RuntimeError, "Cannot set mixer volume (capture=%s, channel=%i, value=%li): %s", dir ? "True" : "False", i, val, snd_strerror(-res));
 		}
 	}
-	Py_DECREF(t);
 	Py_RETURN_NONE;
 }
 
@@ -937,7 +936,6 @@ pyalsamixerelement_setswitchtuple(struct pyalsamixerelement *pyelem, PyObject *a
 		if (res < 0)
 			 PyErr_Format(PyExc_RuntimeError, "Cannot set mixer switch (capture=%s, channel=%i, value=%i): %s", dir ? "True" : "False", i, val, snd_strerror(-res));
 	}
-	Py_DECREF(t);
 	Py_RETURN_NONE;
 }
 
