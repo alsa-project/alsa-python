@@ -1172,10 +1172,8 @@ pyalsahcontrolvalue_settuple(struct pyalsahcontrolvalue *self, PyObject *args)
 			return NULL;
 		}
 		iec958 = calloc(1, sizeof(*iec958));
-		if (iec958 == NULL) {
-			Py_DECREF(t);
+		if (iec958 == NULL)
 			Py_RETURN_NONE;
-		}
 		v = !list ? PyTuple_GET_ITEM(t, 0) : PyList_GetItem(t, 0);
 		Py_INCREF(v);
 		if (!PyBytes_Check(v))
